@@ -32,8 +32,10 @@ func (m *model) Draw() gruid.Grid {
 	// Clear the grid before drawing
 	m.grid.Fill(gruid.Cell{Rune: ' '}) // Fill with blank spaces
 
-	// TODO: Draw the map tiles first (we'll add this later)
-	// Example: DrawMap(m.game.Map, m.grid)
+	// Draw the map tiles first
+	if m.game != nil && m.game.Map != nil {
+		DrawMap(m.game.Map, m.grid)
+	}
 
 	// Render entities using the ECS RenderSystem
 	if m.game != nil && m.game.ecs != nil {

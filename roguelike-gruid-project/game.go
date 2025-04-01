@@ -7,5 +7,6 @@ const (
 // Game represents the main game state.
 type game struct {
 	Map *Map
-	ecs *World // The Entity-Component-System manager
+	ecs *World    // The Entity-Component-System manager
+	PlayerID EntityID // Store the player's entity ID
 }

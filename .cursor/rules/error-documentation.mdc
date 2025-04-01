@@ -1,9 +1,11 @@
----
-description: Document major failure points in this project and they were solved.  To be filled by AI.
-globs: 
-alwaysApply: false
----
----
-description: Document major failure points in this project and they were solved.  To be filled by AI. 
-globs: 
+# Error Documentation
+
+This file tracks known issues, their context, state, and resolution.
+
+*   **Issue:** [Brief Description]
+    *   **Context:** [Where/When does it occur?]
+    *   **State:** [Open/Investigating/Resolved]
+    *   **Resolution:** [How was it fixed?]
+    *   **Date:** [YYYY-MM-DD]
+
 ---

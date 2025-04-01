@@ -19,11 +19,12 @@ const (
 
 func main() {
 	// Seed random number generator (optional, for more complex spawning later)
-	rand.New(rand.NewSource(time.Now().UnixNano()))
+	rand.New(rand.NewSource(time.Now().UnixNano())) // Correctly seed the global rand
 
 	// Initialize the game state and ECS World
+	gameMap, playerStart := NewMap(gameWidth, gameHeight) // Capture both return values
 	g := &game{
-		Map: NewMap(gameWidth, gameHeight),
+		Map: gameMap,
 		ecs: NewWorld(),
 	}
 
@@ -31,8 +32,8 @@ func main() {
 	playerID := g.ecs.CreateEntity()
 
 	// Add components to the player
-	startPos := gruid.Point{X: gameWidth / 2, Y: gameHeight / 2}
-	g.ecs.AddComponent(playerID, Position{Point: startPos})
+	// Use the start position returned by NewMap
+	g.ecs.AddComponent(playerID, Position{Point: playerStart})
 	g.ecs.AddComponent(playerID, Renderable{Glyph: '@', Color: gruid.ColorDefault})
 	g.ecs.AddComponent(playerID, BlocksMovement{}) // Player blocks movement
 
