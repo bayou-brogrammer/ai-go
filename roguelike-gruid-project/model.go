@@ -5,6 +5,8 @@
 package main
 
 import (
+	"runtime"
+
 	"codeberg.org/anaseto/gruid"
 )
 
@@ -14,13 +16,31 @@ type model struct {
 	game *game      // game state
 }
 
-func (m *model) Update(msg gruid.Msg) gruid.Effect {
+func (m *model) init() gruid.Effect {
+	if runtime.GOOS == "js" {
+		return nil
+	}
+	return gruid.Sub(subSig)
+
+}
+
+func (md *model) Update(msg gruid.Msg) gruid.Effect {
+	if _, ok := msg.(gruid.MsgInit); ok {
+		return md.init()
+	}
+
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
 		_ = msg
 		return nil
 	case gruid.MsgQuit:
 		return gruid.End()
+	case gruid.MsgKeyDown:
+		if msg.Key == "q" {
+			return gruid.End()
+		}
+		return nil
+
 	}
 
 	return nil
@@ -28,19 +48,19 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 
 // Draw implements gruid.Model.Draw. It clears the grid, then renders the map
 // and all entities using the RenderSystem.
-func (m *model) Draw() gruid.Grid {
+func (md *model) Draw() gruid.Grid {
 	// Clear the grid before drawing
-	m.grid.Fill(gruid.Cell{Rune: ' '}) // Fill with blank spaces
+	md.grid.Fill(gruid.Cell{Rune: ' '}) // Fill with blank spaces
 
 	// Draw the map tiles first
-	if m.game != nil && m.game.Map != nil {
-		DrawMap(m.game.Map, m.grid)
+	if md.game != nil && md.game.Map != nil {
+		DrawMap(md.game.Map, md.grid)
 	}
 
 	// Render entities using the ECS RenderSystem
-	if m.game != nil && m.game.ecs != nil {
-		RenderSystem(m.game.ecs, m.grid)
+	if md.game != nil && md.game.ecs != nil {
+		RenderSystem(md.game.ecs, md.grid)
 	}
 
-	return m.grid
+	return md.grid
 }

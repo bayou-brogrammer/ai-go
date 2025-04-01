@@ -26,7 +26,7 @@ type Map struct {
 }
 
 // generateMap creates a new map layout with rooms and tunnels.
-func generateMap(width, height int) ([][]rl.Cell, gruid.Point) {
+func generateMap(width, height int) (rl.Grid, gruid.Point) {
 	grid := rl.NewGrid(width, height)
 	grid.Fill(WallCell)
 
@@ -75,11 +75,11 @@ func generateMap(width, height int) ([][]rl.Cell, gruid.Point) {
 // It now returns the map and the player's starting position.
 func NewMap(width, height int) (*Map, gruid.Point) {
 	m := &Map{
-		LogicalTiles: make([][]TileType, height),
-		Visible:      make([][]bool, height), // Initialize visibility slice
-		Explored:     make([][]bool, height), // Initialize explored slice
-		Width:        width,
-		Height:       height,
+		Grid:     rl.NewGrid(width, height),
+		Visible:  make([][]bool, height), // Initialize visibility slice
+		Explored: make([][]bool, height), // Initialize explored slice
+		Width:    width,
+		Height:   height,
 	}
 
 	for y := range m.Height {
@@ -89,7 +89,7 @@ func NewMap(width, height int) (*Map, gruid.Point) {
 
 	// Generate the map layout
 	var playerStart gruid.Point
-	m.LogicalTiles, playerStart = generateMap(width, height)
+	m.Grid, playerStart = generateMap(width, height)
 
 	// Initialize visibility/explored based on the generated map (optional, could be done by FOV later)
 	for y := range m.Height {
@@ -112,7 +112,7 @@ func (m *Map) IsWall(p gruid.Point) bool {
 	if !m.InBounds(p) {
 		return true
 	}
-	return m.LogicalTiles[p.Y][p.X] == TileWall
+	return m.Grid.At(p) == WallCell
 }
 
 // IsOpaque checks if a tile blocks FOV. Required by fov.Compute.
@@ -122,20 +122,19 @@ func (m *Map) IsOpaque(p gruid.Point) bool {
 
 // DrawMap renders the map tiles onto the provided grid.
 func DrawMap(m *Map, grid gruid.Grid) {
-	for y := range m.Height {
-		for x := range m.Width {
-			p := gruid.Point{X: x, Y: y}
-			cell := gruid.Cell{Rune: ' '} // Default blank
+	m.Grid.Iter(func(p gruid.Point, c rl.Cell) {
 
-			switch m.LogicalTiles[y][x] {
-			case TileWall:
-				// TODO: Use defined colors later
-				cell = gruid.Cell{Rune: '#', Style: gruid.Style{Fg: gruid.ColorDefault}} // Use default for now
-			case TileFloor:
-				// TODO: Use defined colors later
-				cell = gruid.Cell{Rune: '.', Style: gruid.Style{Fg: gruid.ColorDefault}} // Use default for now
-			}
-			grid.Set(p, cell)
+		cell := gruid.Cell{}
+		if c == WallCell {
+			cell.Rune = '#'
+			cell.Style = gruid.Style{Bg: gruid.ColorDefault, Fg: gruid.ColorDefault}
 		}
-	}
+
+		if c == FloorCell {
+			cell.Rune = '.'
+			cell.Style = gruid.Style{Bg: gruid.ColorDefault, Fg: gruid.ColorDefault}
+		}
+
+		grid.Set(p, cell)
+	})
 }

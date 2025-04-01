@@ -1,5 +1,5 @@
-// This file manages font drawing and colors. The tiles package from the gruid
-// module handles most of the work for us.
+//go:build js || sdl
+// +build js sdl
 
 package main
 

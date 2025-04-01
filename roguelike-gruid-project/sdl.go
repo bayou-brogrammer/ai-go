@@ -7,20 +7,22 @@ import (
 	"log"
 
 	"codeberg.org/anaseto/gruid"
-	"codeberg.org/anaseto/gruid-sdl"
 	sdl "codeberg.org/anaseto/gruid-sdl"
 )
 
 var driver gruid.Driver
 
 func init() {
-	t, err := getTileDrawer()
+	t, err := GetTileDrawer()
+
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	dr := sdl.NewDriver(sdl.Config{
 		TileManager: t,
 	})
+
 	//dr.SetScale(2.0, 2.0)
 	dr.PreventQuit()
 	driver = dr
