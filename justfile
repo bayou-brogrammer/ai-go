@@ -7,7 +7,7 @@ default:
 
 # Build the game
 build:
-    go build -o roguelike
+    cd roguelike-gruid-project && go build -o ../roguelike
 
 # Run the game
 run: build
@@ -15,7 +15,7 @@ run: build
 
 # Build and run with race detection
 run-race:
-    go run -race .
+    cd roguelike-gruid-project && go run -race .
 
 # Clean build artifacts
 clean:
@@ -23,24 +23,24 @@ clean:
 
 # Run tests
 test:
-    go test ./...
+    cd roguelike-gruid-project && go test ./...
 
 # Run tests with verbose output
 test-verbose:
-    go test -v ./...
+    cd roguelike-gruid-project && go test -v ./...
 
 # Format code
 fmt:
-    go fmt ./...
+    cd roguelike-gruid-project && go fmt ./...
 
 # Check for code issues
 lint:
-    go vet ./...
+    cd roguelike-gruid-project && go vet ./...
 
 # Install dependencies
 deps:
-    go mod tidy
+    cd roguelike-gruid-project && go mod tidy
 
 # Build for web (WebAssembly)
 build-wasm:
-    GOOS=js GOARCH=wasm go build -o roguelike.wasm
+    cd roguelike-gruid-project && GOOS=js GOARCH=wasm go build -o ../roguelike.wasm
