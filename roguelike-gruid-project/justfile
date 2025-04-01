@@ -1,0 +1,39 @@
+# Roguelike Gruid Project Justfile
+# Run commands with: just <command>
+
+# Default recipe to run when just is called without arguments
+default:
+    @just --list
+
+# Run the game
+run:
+    go run .
+
+# Build the game
+build:
+    go build -o roguelike-gruid .
+
+# Clean build artifacts
+clean:
+    rm -f roguelike-gruid
+
+# Run with race detection (helpful for finding concurrency issues)
+run-race:
+    go run -race .
+
+# Build for web (requires TinyGo)
+build-web:
+    GOOS=js GOARCH=wasm go build -o web/roguelike.wasm .
+
+# Update dependencies
+update-deps:
+    go get -u ./...
+    go mod tidy
+
+# Format code
+fmt:
+    go fmt ./...
+
+# Run tests (when you add them)
+test:
+    go test ./...
