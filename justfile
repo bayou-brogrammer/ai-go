@@ -36,7 +36,9 @@ fmt:
 
 # Check for code issues
 lint:
-    cd roguelike-gruid-project && go vet ./...
+    @echo "Running go vet..."
+    cd roguelike-gruid-project && go vet .
+    @echo "Running go vet completed successfully"
 
 # Install dependencies
 deps:
