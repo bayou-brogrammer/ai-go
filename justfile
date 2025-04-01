@@ -31,7 +31,8 @@ test-verbose:
 
 # Format code
 fmt:
-    cd roguelike-gruid-project && go fmt ./...
+    cd roguelike-gruid-project && go fmt .
+    @echo "Go files formatted successfully"
 
 # Check for code issues
 lint:
