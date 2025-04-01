@@ -21,8 +21,8 @@ type Map struct {
 	Grid     rl.Grid // Stores the map cells (rune, style, attributes)
 	Width    int
 	Height   int
-	Visible  [][]bool // Tiles currently visible to the player
-	Explored [][]bool // Tiles that have ever been visible
+	Visible  map[gruid.Point]bool // Tiles currently visible to the player
+	Explored map[gruid.Point]bool // Tiles that have ever been visible
 }
 
 // generateMap creates a new map layout with rooms and tunnels.
@@ -76,15 +76,10 @@ func generateMap(width, height int) (rl.Grid, gruid.Point) {
 func NewMap(width, height int) (*Map, gruid.Point) {
 	m := &Map{
 		Grid:     rl.NewGrid(width, height),
-		Visible:  make([][]bool, height), // Initialize visibility slice
-		Explored: make([][]bool, height), // Initialize explored slice
+		Visible:  make(map[gruid.Point]bool), // Initialize visibility slice
+		Explored: make(map[gruid.Point]bool), // Initialize explored slice
 		Width:    width,
 		Height:   height,
-	}
-
-	for y := range m.Height {
-		m.Visible[y] = make([]bool, m.Width)  // Initialize inner slice
-		m.Explored[y] = make([]bool, m.Width) // Initialize inner slice
 	}
 
 	// Generate the map layout
@@ -94,8 +89,9 @@ func NewMap(width, height int) (*Map, gruid.Point) {
 	// Initialize visibility/explored based on the generated map (optional, could be done by FOV later)
 	for y := range m.Height {
 		for x := range m.Width {
-			m.Visible[y][x] = false  // Start not visible
-			m.Explored[y][x] = false // Start not explored
+			p := gruid.Point{X: x, Y: y}
+			m.Visible[p] = false  // Start not visible
+			m.Explored[p] = false // Start not explored
 		}
 	}
 
@@ -120,21 +116,12 @@ func (m *Map) IsOpaque(p gruid.Point) bool {
 	return m.IsWall(p) // For now, only walls block sight
 }
 
-// DrawMap renders the map tiles onto the provided grid.
-func DrawMap(m *Map, grid gruid.Grid) {
-	m.Grid.Iter(func(p gruid.Point, c rl.Cell) {
-
-		cell := gruid.Cell{}
-		if c == WallCell {
-			cell.Rune = '#'
-			cell.Style = gruid.Style{Bg: gruid.ColorDefault, Fg: gruid.ColorDefault}
-		}
-
-		if c == FloorCell {
-			cell.Rune = '.'
-			cell.Style = gruid.Style{Bg: gruid.ColorDefault, Fg: gruid.ColorDefault}
-		}
-
-		grid.Set(p, cell)
-	})
+func (m *Map) Rune(c rl.Cell) (r rune) {
+	switch c {
+	case WallCell:
+		r = '#'
+	case FloorCell:
+		r = '.'
+	}
+	return r
 }

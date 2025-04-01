@@ -16,12 +16,11 @@ type model struct {
 	game *game      // game state
 }
 
-func (m *model) init() gruid.Effect {
+func (md *model) init() gruid.Effect {
 	if runtime.GOOS == "js" {
 		return nil
 	}
 	return gruid.Sub(subSig)
-
 }
 
 func (md *model) Update(msg gruid.Msg) gruid.Effect {
@@ -39,8 +38,6 @@ func (md *model) Update(msg gruid.Msg) gruid.Effect {
 		if msg.Key == "q" {
 			return gruid.End()
 		}
-		return nil
-
 	}
 
 	return nil
@@ -49,12 +46,26 @@ func (md *model) Update(msg gruid.Msg) gruid.Effect {
 // Draw implements gruid.Model.Draw. It clears the grid, then renders the map
 // and all entities using the RenderSystem.
 func (md *model) Draw() gruid.Grid {
+	g := md.game
+
 	// Clear the grid before drawing
 	md.grid.Fill(gruid.Cell{Rune: ' '}) // Fill with blank spaces
 
 	// Draw the map tiles first
-	if md.game != nil && md.game.Map != nil {
-		DrawMap(md.game.Map, md.grid)
+	if g != nil && g.Map != nil {
+		// We draw the map tiles.
+		it := g.Map.Grid.Iterator()
+		for it.Next() {
+			// if !g.Map.Explored[it.P()] {
+			// 	continue
+			// }
+
+			c := gruid.Cell{Rune: g.Map.Rune(it.Cell())}
+			// if g.InFOV(it.P()) {
+			// 	c.Style.Bg = ColorFOV
+			// }
+			md.grid.Set(it.P(), c)
+		}
 	}
 
 	// Render entities using the ECS RenderSystem
