@@ -13,6 +13,9 @@ build:
 run: build
     ./roguelike
 
+run-sdl:
+    cd roguelike-gruid-project && go run --tags sdl .
+
 # Build and run with race detection
 run-race:
     cd roguelike-gruid-project && go run -race .
