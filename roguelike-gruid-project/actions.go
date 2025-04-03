@@ -1,6 +1,10 @@
 package main
 
-import "codeberg.org/anaseto/gruid"
+import (
+	"fmt"
+
+	"codeberg.org/anaseto/gruid"
+)
 
 type action int
 
@@ -28,14 +32,19 @@ func (e actionError) Error() string {
 }
 
 func (md *model) normalModeAction(action action) (again bool, eff gruid.Effect, err error) {
+	g := md.game
+
+	fmt.Printf("Action: %v\n", action)
+
 	switch action {
 	case ActionNone:
 		again = true
 		err = actionErrorUnknown
-	case getMovementActions():
-		// again, err = g.PlayerBump(g.Player.P.Add(keyToDir(action)))
+	case ActionW, ActionS, ActionN, ActionE:
+		again, err = g.PlayerBump(keyToDir(action))
 
 	default:
+		fmt.Printf("Unknown action: %v\n", action)
 		err = actionErrorUnknown
 
 	}

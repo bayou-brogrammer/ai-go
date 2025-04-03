@@ -12,11 +12,6 @@ func (md *model) Update(msg gruid.Msg) gruid.Effect {
 	}
 
 	switch msg := msg.(type) {
-	case gruid.MsgInit:
-		_ = msg
-		return nil
-	case gruid.MsgQuit:
-		return gruid.End()
 	case gruid.MsgKeyDown:
 		if msg.Key == "q" {
 			return gruid.End()

@@ -27,4 +27,21 @@ This file serves as a learning journal for the project, capturing important patt
     *   **Reasoning:** Prefer `for i := range n` over `for i := 0; i < n; i++`. The `range` form is more idiomatic and concise in Go for iterating 0 to n-1. Example: Replace `for y := 0; y < height; y++ {` with `for y := range height {`.
     *   **Date:** 2025-03-31
 
+*   **Pattern:** Input handling pipeline in roguelikes
+    *   **Context:** Player movement implementation using gruid's input system
+    *   **Reasoning:** Breaking down input handling into distinct layers (key → action → game logic) provides flexibility and maintainability:
+        1. Key mapping layer (`input.go`): Maps physical keys to logical actions
+        2. Action handling layer (`actions.go`): Converts actions to game effects
+        3. Game logic layer (`game.go`): Implements actual movement with collision checks
+    *   **Date:** 2025-04-02
+
+*   **Pattern:** Collision detection in grid-based games
+    *   **Context:** Player movement implementation
+    *   **Reasoning:** Check collisions before updating position to maintain game state consistency:
+        1. Get current position
+        2. Calculate intended new position
+        3. Check for collisions (walls, entities)
+        4. Only update position if no collision
+    *   **Date:** 2025-04-02
+
 ---

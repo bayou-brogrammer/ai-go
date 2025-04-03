@@ -43,6 +43,8 @@ func main() {
 	g.ecs.AddComponent(playerID, Renderable{Glyph: '@', Color: gruid.ColorDefault})
 	g.ecs.AddComponent(playerID, BlocksMovement{}) // Player blocks movement
 
+	g.PlayerID = playerID // Store the player ID in the game struct
+
 	// Create a new grid with standard 80x24 size.
 	gd := gruid.NewGrid(gameWidth, gameHeight)
 

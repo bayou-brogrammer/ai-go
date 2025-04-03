@@ -103,6 +103,14 @@ func (m *Map) InBounds(p gruid.Point) bool {
 	return p.X >= 0 && p.X < m.Width && p.Y >= 0 && p.Y < m.Height
 }
 
+func (m *Map) isWalkable(p gruid.Point) bool {
+	if !m.InBounds(p) {
+		return false
+	}
+
+	return m.Grid.At(p) == FloorCell
+}
+
 // IsWall checks if the tile at the given point is a wall.
 func (m *Map) IsWall(p gruid.Point) bool {
 	if !m.InBounds(p) {
