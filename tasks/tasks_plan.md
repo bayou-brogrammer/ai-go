@@ -41,39 +41,50 @@ Create a basic, playable roguelike game in the terminal using Go and `gruid`, fe
 - Map tiles (`DrawMap`) and Entities (`RenderSystem`) are rendered in the correct order in `model.Draw`.
 - Basic map generation with rooms and corridors is implemented.
 - Player starts in the center of the first generated room.
-- Player movement with arrow keys and collision detection is implemented.
+- Player movement with arrow keys and collision detection is implemented (`model.Update`, `actions.go`).
+- Basic `TurnQueue` using `container/heap` is implemented (`turn.go`).
+- `GameAction` interface and `MoveAction` struct defined (`turn.go`).
 
 ## 4. Next Steps / Backlog
 
 _(Ordered roughly by priority/dependency)_
 
-1. **Implement Field of View (FOV):**
-   - Integrate `gruid/fov` package.
-   - Add `Visible` and `Explored` tracking to `Map` struct (already done).
-   - Implement `ComputeFOV` function (likely in `map.go` or `fov.go`).
-   - Call `ComputeFOV` when player moves.
-   - Modify `DrawMap` and `RenderSystem` to only draw visible/explored tiles/entities based on `Map.Visible` and `Map.Explored`.
+1.  **Implement Turn-Based System with Action Costs:**
+    - [ ] Define `AITag` component (`components.go`) and add ECS methods (`ecs.go`).
+    - [ ] Modify `GameAction` interface in `turn.go` to return `(cost uint, err error)`.
+    - [ ] Update `MoveAction.Execute` in `turn.go` to return a cost (e.g., 100) and handle bump/fail cases.
+    - [ ] Update monster spawning logic (e.g., in `game.go` or map generation) to add `AITag` and add monsters to `turnQueue`.
+    - [ ] Create `handleMonsterTurn` function (`systems.go` or `ai.go`) for random movement and action cost calculation.
+    - [ ] Create `processTurnQueue` method in `model_update.go` to handle the main turn loop logic (processing monsters until player).
+    - [ ] Modify `model.Update` in `model_update.go` to call `processTurnQueue` and handle player input only when indicated.
+    - [ ] Modify `EndTurn` (or related logic) in `model_update.go` to use action cost for re-queueing the player and call `processTurnQueue` afterwards.
+2.  **Implement Field of View (FOV):**
+    - [ ] Integrate `gruid/fov` package.
+    - [ ] Add `Visible` and `Explored` tracking to `Map` struct (partially done).
+    - [ ] Implement `ComputeFOV` function (likely in `map.go` or `fov.go`).
+    - [ ] Call `ComputeFOV` when player moves/acts.
+    - [ ] Modify `DrawMap` and `RenderSystem` to only draw visible/explored tiles/entities based on `Map.Visible` and `Map.Explored`.
 2. **Refine Colors:**
    - Define color constants (e.g., in `color.go`).
    - Update `DrawMap` and `RenderSystem` (and player creation) to use defined colors instead of `gruid.ColorDefault`.
-   - Consider different colors for explored-but-not-visible tiles.
-3. **Add Basic Monsters:**
-   - Define monster components (e.g., `AI`, `Health`, `CombatStats`).
-   - Create monster entities in `main.go` or map generation.
-   - Implement basic AI system (e.g., `AISystem` for random movement).
-   - Update `RenderSystem` to draw monsters.
-   - Update `MovementSystem` to handle monster collisions.
-4. **Implement Basic Combat:**
-   - Define combat-related components/events.
-   - Implement `CombatSystem`.
-   - Handle player attacking monsters and vice-versa.
-5. **Game UI:**
-   - Message log.
-   - Player stats display.
+   - [ ] Consider different colors for explored-but-not-visible tiles.
+   4.  **Add Basic Monsters (Initial setup done in Turn System task):**
+       - [ ] Define other monster components (e.g., `Health`, `CombatStats`).
+       - [ ] Refine monster spawning locations/types.
+       - [ ] Update `RenderSystem` to draw monsters correctly (if not already covered).
+5.  **Implement Basic Combat:**
+    - [ ] Define combat-related components/events (e.g., `AttackAction`, `Health`, `CombatStats`).
+    - [ ] Implement `CombatSystem` or integrate logic into action handlers.
+    - [ ] Handle player attacking monsters and vice-versa within the turn system.
+6.  **Game UI:**
+    - [ ] Message log.
+    - [ ] Player stats display.
 
 ## 5. Known Issues / TODOs
 
-- No FOV implemented yet.
-- Colors are placeholders (`gruid.ColorDefault`).
-- `driver` variable in `main.go` is likely a placeholder for actual `gruid-sdl` or `gruid-tcell` driver initialization.
+- FOV not implemented.
+- Colors are placeholders.
+- Monster AI is very basic (random movement).
+- No combat implemented.
+- `driver` variable in `main.go` likely needs proper initialization.
 - Missing unit tests.

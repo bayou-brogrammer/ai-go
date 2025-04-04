@@ -18,13 +18,15 @@
 - **Architecture:** Entity-Component-System (ECS)
   - **Implementation:** Custom-built (in `ecs.go`).
   - **Entity ID:** `int` (`ecs.EntityID`).
-  - **Component Storage:** Central map in `ecs.World`: `map[EntityID]map[reflect.Type]interface{}`. Uses `reflect.Type` as the key for component types within an entity's map.
-  - **System Logic:** Implemented as functions (e.g., `RenderSystem` in `systems.go`) that query the `ecs.World`.
-- **Rendering:**
-  - Managed by `gruid` library via the `model.Draw` method.
-  - Map tiles are drawn first using `DrawMap`.
-  - Entities are drawn second using `RenderSystem`.
-- **Game Loop:** Handled by `gruid` calling `model.Update` (for logic/input) and `model.Draw` (for rendering).
+  - **Component Storage:** Central map in `ecs.World`: `map[EntityID]map[reflect.Type]interface{}`.
+  - **System Logic:** Implemented as functions (e.g., `RenderSystem`, `handleMonsterTurn` in `systems.go`) that query the `ecs.World`.
+- **Turn Management:** (`turn.go`)
+  - **Queue:** `TurnQueue` struct using `container/heap` to manage `TurnEntry` items based on scheduled time (`uint64`). Provides a priority queue for actor turns.
+  - **Actions:** `GameAction` interface defines actions actors can take. `Execute` method performs the action and returns an action `cost` (`uint`). Specific actions like `MoveAction` implement this.
+  - **AI:** Monsters identified by `AITag` component (`components.go`). Basic AI logic resides in `handleMonsterTurn` (`systems.go`).
+- **Rendering:** (`model.go`, `map.go`, `systems.go`)
+  - Managed by `gruid` via `model.Draw`. Map drawn first, then entities via `RenderSystem`.
+- **Game Loop:** (`model.go`) Handled by `gruid` calling `model.Update` and `model.Draw`. `model.Update` now incorporates `processTurnQueue` to manage actor turns based on the `TurnQueue` before handling player input.
 
 ## 4. Project Structure
 
@@ -36,8 +38,9 @@
   - `game.go`: High-level game state struct.
   - `map.go`: Map definition and drawing logic.
   - `ecs.go`: Core ECS implementation.
-  - `components.go`: Component struct definitions.
-  - `systems.go`: System function implementations.
+  - `components.go`: Component struct definitions (includes `AITag`).
+  - `systems.go`: System function implementations (includes `RenderSystem`, `handleMonsterTurn`).
+  - `turn.go`: Turn queue, actions, action costs.
   - `color.go`: (Likely for color definitions - TBD).
   - `tiles.go`: (Likely for tile definitions/constants - TBD).
   - `driver.go`/`sdl.go`/`tcell.go`: Terminal driver setup (TBD).
