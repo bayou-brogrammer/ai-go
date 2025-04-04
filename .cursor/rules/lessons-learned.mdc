@@ -44,4 +44,22 @@ This file serves as a learning journal for the project, capturing important patt
         4. Only update position if no collision
     *   **Date:** 2025-04-02
 
+*   **Pattern:** Field of View (FOV) implementation in roguelikes
+    *   **Context:** Implementing visibility for the player in a grid-based game
+    *   **Reasoning:** FOV is a critical roguelike feature that:
+        1. Limits what the player can see based on line-of-sight
+        2. Distinguishes between currently visible and previously explored areas
+        3. Requires recalculation when player moves or environment changes
+        4. Often uses algorithms like shadowcasting or raycasting
+    *   **Date:** 2025-04-03
+
+*   **Pattern:** Color management in terminal games
+    *   **Context:** Visual representation in terminal-based roguelikes
+    *   **Reasoning:** Consistent color scheme improves player experience:
+        1. Define color constants to ensure consistency
+        2. Use different colors for different game elements (walls, floors, entities)
+        3. Use color variations to indicate state (visible vs. explored)
+        4. Consider terminal color limitations
+    *   **Date:** 2025-04-03
+
 ---

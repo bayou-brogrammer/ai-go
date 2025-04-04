@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+
 	"codeberg.org/anaseto/gruid"
 )
 
@@ -9,41 +11,35 @@ func (g *game) checkCollision(pos gruid.Point) bool {
 	if !g.Map.InBounds(pos) {
 		return true // Out of bounds
 	}
+
 	// Check for blocking entities
-	for _, id := range g.ecs.QueryEntitiesWithComponents(GetReflectType(Position{}), GetReflectType(BlocksMovement{})) {
+	for _, id := range g.ecs.EntitiesAt(pos) {
 		if id == g.PlayerID {
 			continue
 		}
-		otherPos, ok := g.ecs.GetComponent(id, GetReflectType(Position{}))
-		if ok && otherPos.(Position).Point == pos {
+		otherPos, ok := g.ecs.GetPosition(id)
+		if ok && otherPos == pos {
 			return true // Collision with blocking entity
 		}
 	}
+
 	return false
 }
 
 func (g *game) PlayerBump(delta gruid.Point) (bool, error) {
 	pid := g.PlayerID
+	playerPos, ok := g.ecs.GetPosition(pid)
+	if !ok {
+		return false, errors.New("player position not found")
+	}
 
-	// Update player position in ECS
-	positionType := GetReflectType(Position{})
-	if comps, ok := g.ecs.entities[pid]; ok {
-		if pos, found := comps[positionType]; found {
-			currentPos := pos.(Position).Point
-			newPos := currentPos.Add(delta)
+	newPos := playerPos.Add(delta)
 
-			if !g.Map.isWalkable(newPos) { // Check if the new position is walkable
-				return false, nil // Not walkable, don't move
-			}
-
-			g.ecs.entities[pid][positionType] = Position{Point: newPos} // Save the updated position back
-			return true, nil                                            // Movement successful
-		}
-	} else {
-		//Very unexpected, but handle the case where the player entity doesn't exist
+	if !g.Map.isWalkable(newPos) || g.checkCollision(newPos) {
 		return false, nil
 	}
 
-	// If we reach here, something went wrong
-	return false, nil // Movement failed
+	g.ecs.MoveEntity(pid, newPos)
+
+	return true, nil
 }

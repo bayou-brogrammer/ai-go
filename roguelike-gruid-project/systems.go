@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"codeberg.org/anaseto/gruid"
 )
 
@@ -13,110 +11,22 @@ type MovementEvent struct {
 }
 
 // RenderSystem draws all entities with Position and Renderable components onto the grid.
-func RenderSystem(ecs *World, grid gruid.Grid) {
-	// Get component types needed for querying
-	posType := GetReflectType(Position{})
-	renType := GetReflectType(Renderable{})
-
-	// Query for entities that have both Position and Renderable
-	entityIDs := ecs.QueryEntitiesWithComponents(posType, renType)
+func RenderSystem(ecs *ECS, grid gruid.Grid) {
+	entityIDs := ecs.GetEntitiesWithPositionAndRenderable()
 
 	// Iterate through entities and draw them
 	for _, id := range entityIDs {
 		// Retrieve components (we know they exist from the query)
-		posComp, _ := ecs.GetComponent(id, posType)
-		renComp, _ := ecs.GetComponent(id, renType)
-
-		// Type assert components to access their fields
-		pos := posComp.(Position)
-		ren := renComp.(Renderable)
+		pos, _ := ecs.GetPosition(id)
+		ren, _ := ecs.GetRenderable(id)
 
 		// Set the cell in the grid
 		// Note: This assumes the grid has been cleared beforehand.
 		// We might add map bounds checking later.
-		grid.Set(pos.Point, gruid.Cell{
+		grid.Set(pos, gruid.Cell{
 			Rune:  ren.Glyph,
 			Style: gruid.Style{Fg: ren.Color}, // Assuming default background for now
 		})
-	}
-}
-
-// TurnSystem processes turns for entities
-func TurnSystem(g *game) {
-	processTurns(g)
-	monstersTurn(g)
-}
-
-// process_turns function
-func processTurns(g *game) {
-	world := g.ecs
-	turnQueue := g.turnQueue
-
-	// Periodically clean up the queue
-	metrics := turnQueue.CleanupDeadEntities(world)
-
-	if metrics.EntitiesRemoved > 10 {
-		log.Printf(
-			"Turn queue cleanup: removed %d entities in %v",
-			metrics.EntitiesRemoved,
-			metrics.ProcessingTime,
-		)
-	}
-
-	turnQueue.PrintQueue()
-
-	for {
-		entry, ok := turnQueue.Next()
-		if !ok {
-			break
-		}
-
-		entity := entry.EntityID
-		time := entry.Time
-
-		actorComponent, ok := world.GetComponent(entity, GetReflectType(TurnActor{}))
-		if !ok {
-			log.Printf("Actor not found: %v", entity)
-			continue
-		}
-
-		actor, ok := actorComponent.(TurnActor)
-		if !ok {
-			log.Printf("Invalid turn_actor component for entity: %v", entity)
-			continue
-		}
-
-		if !actor.IsAlive() {
-			log.Printf("Actor is dead. Why is it still in the queue?")
-			continue
-		}
-
-		hasAction := actor.PeakNextAction() != nil
-		_, isPlayer := world.GetComponent(entity, GetReflectType(Name{}))
-
-		if isPlayer && !hasAction {
-			log.Printf("Player is awaiting input: %v", entity)
-			world.AddComponent(entity, WaitingForInput{})
-			turnQueue.Add(entity, time)
-			return
-		}
-
-		action := actor.NextAction()
-		if action == nil {
-			log.Printf("No action for entity: %v. Rescheduling turn.", entity)
-			turnQueue.Add(entity, time)
-			return
-		}
-
-		dTime, err := action.Execute(world)
-		if err != nil {
-			log.Printf("Failed to execute action: %v", err)
-			turnQueue.Add(entity, time)
-			return
-		}
-
-		turnQueue.Add(entity, time+uint64(dTime))
-
 	}
 }
 

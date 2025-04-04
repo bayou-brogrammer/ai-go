@@ -25,9 +25,12 @@ type model struct {
 }
 
 func (md *model) init() gruid.Effect {
+	md.game.InitLevel()
+
 	if runtime.GOOS == "js" {
 		return nil
 	}
+
 	return gruid.Sub(subSig)
 }
 

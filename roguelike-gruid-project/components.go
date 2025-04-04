@@ -24,12 +24,9 @@ type Renderable struct {
 // BlocksMovement component
 type BlocksMovement struct{}
 
-// GameAction is an interface for actions that can be performed in the game.
-type GameAction interface {
-	Execute(world *World) (uint, error)
-}
+type Dead struct{}
 
-type DeadTag struct{}
+type Player struct{}
 
 // TurnActor represents an entity that takes turns in the game.
 type TurnActor struct {
@@ -40,8 +37,8 @@ type TurnActor struct {
 }
 
 // NewTurnActor creates a new TurnActor with the given speed.
-func NewTurnActor(speed uint64) *TurnActor {
-	return &TurnActor{
+func NewTurnActor(speed uint64) TurnActor {
+	return TurnActor{
 		Speed:        speed,
 		Alive:        true,
 		NextTurnTime: 0,

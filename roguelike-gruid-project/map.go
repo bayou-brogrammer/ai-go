@@ -25,10 +25,23 @@ type Map struct {
 	Explored map[gruid.Point]bool // Tiles that have ever been visible
 }
 
+// NewMap creates a new map initialized with walls and visibility data.
+// It now returns the map and the player's starting position.
+func NewMap(width, height int) *Map {
+	m := &Map{
+		Grid:     rl.NewGrid(width, height),
+		Visible:  make(map[gruid.Point]bool), // Initialize visibility slice
+		Explored: make(map[gruid.Point]bool), // Initialize explored slice
+		Width:    width,
+		Height:   height,
+	}
+
+	return m
+}
+
 // generateMap creates a new map layout with rooms and tunnels.
-func generateMap(width, height int) (rl.Grid, gruid.Point) {
-	grid := rl.NewGrid(width, height)
-	grid.Fill(WallCell)
+func (m *Map) generateMap(width, height int) gruid.Point {
+	m.Grid.Fill(WallCell)
 
 	var rooms []Rect
 	var playerStart gruid.Point
@@ -45,7 +58,7 @@ func generateMap(width, height int) (rl.Grid, gruid.Point) {
 		intersects := slices.ContainsFunc(rooms, newRoom.Intersects)
 
 		if !intersects {
-			createRoom(grid, newRoom)
+			createRoom(m.Grid, newRoom)
 			newCenter := newRoom.Center()
 
 			if len(rooms) == 0 {
@@ -57,45 +70,18 @@ func generateMap(width, height int) (rl.Grid, gruid.Point) {
 
 				// Randomly decide tunnel order (H then V or V then H)
 				if rand.Intn(2) == 0 {
-					createHTunnel(grid, prevCenter.X, newCenter.X, prevCenter.Y)
-					createVTunnel(grid, prevCenter.Y, newCenter.Y, newCenter.X)
+					createHTunnel(m.Grid, prevCenter.X, newCenter.X, prevCenter.Y)
+					createVTunnel(m.Grid, prevCenter.Y, newCenter.Y, newCenter.X)
 				} else {
-					createVTunnel(grid, prevCenter.Y, newCenter.Y, prevCenter.X)
-					createHTunnel(grid, prevCenter.X, newCenter.X, newCenter.Y)
+					createVTunnel(m.Grid, prevCenter.Y, newCenter.Y, prevCenter.X)
+					createHTunnel(m.Grid, prevCenter.X, newCenter.X, newCenter.Y)
 				}
 			}
 			rooms = append(rooms, newRoom)
 		}
 	}
 
-	return grid, playerStart
-}
-
-// NewMap creates a new map initialized with walls and visibility data.
-// It now returns the map and the player's starting position.
-func NewMap(width, height int) (*Map, gruid.Point) {
-	m := &Map{
-		Grid:     rl.NewGrid(width, height),
-		Visible:  make(map[gruid.Point]bool), // Initialize visibility slice
-		Explored: make(map[gruid.Point]bool), // Initialize explored slice
-		Width:    width,
-		Height:   height,
-	}
-
-	// Generate the map layout
-	var playerStart gruid.Point
-	m.Grid, playerStart = generateMap(width, height)
-
-	// Initialize visibility/explored based on the generated map (optional, could be done by FOV later)
-	for y := range m.Height {
-		for x := range m.Width {
-			p := gruid.Point{X: x, Y: y}
-			m.Visible[p] = false  // Start not visible
-			m.Explored[p] = false // Start not explored
-		}
-	}
-
-	return m, playerStart
+	return playerStart
 }
 
 // InBounds checks if coordinates are within map bounds.

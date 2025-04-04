@@ -5,7 +5,33 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"codeberg.org/anaseto/gruid"
 )
+
+// GameAction is an interface for actions that can be performed in the game.
+type GameAction interface {
+	Execute(g *game) (uint, error)
+}
+
+type MoveAction struct {
+	Direction gruid.Point
+}
+
+func (a MoveAction) Execute(g *game) (uint, error) {
+	again, err := g.PlayerBump(a.Direction)
+	if err != nil {
+		return 0, err
+	}
+
+	if again {
+		return 0, nil
+	}
+
+	return 0, nil
+}
+
+// --- TurnEntry ---
 
 // TurnEntry represents an item in the turn queue.
 // It holds the time (priority) and the entity's ID.
@@ -106,6 +132,7 @@ func (tq *TurnQueue) Next() (TurnEntry, bool) {
 	if tq.queue.Len() == 0 {
 		return TurnEntry{}, false
 	}
+
 	// heap.Pop returns any, so we perform a type assertion.
 	entry := heap.Pop(tq.queue).(TurnEntry)
 	// Increment cleanup counter or metrics if needed
@@ -167,21 +194,21 @@ func (m CleanupMetrics) String() string {
 
 // isValIDTurnActor checks if an entity is valid to remain in the turn queue.
 // Corresponds to the Rust method.
-func (tq *TurnQueue) isValIDTurnActor(world *World, entityID EntityID) bool {
+func (tq *TurnQueue) isValIDTurnActor(world *ECS, entityID EntityID) bool {
 	// First, check if entity exists at all
 	if !world.EntityExists(entityID) {
 		return false
 	}
 
 	// Check if it has required TurnActor component
-	if !world.HasComponent(entityID, GetReflectType(TurnActor{})) {
-		return false
-	}
+	// if !world.HasComponent(entityID, GetReflectType(TurnActor{})) {
+	// 	return false
+	// }
 
 	// Check for "dead" markers (game-specific logic)
-	if world.HasComponent(entityID, GetReflectType(DeadTag{})) {
-		return false
-	}
+	// if world.HasComponent(entityID, GetReflectType(Dead{})) {
+	// 	return false
+	// }
 
 	// Check for health <= 0 (if Health component exists)
 	/*
@@ -203,11 +230,11 @@ func (tq *TurnQueue) isValIDTurnActor(world *World, entityID EntityID) bool {
 
 // --- Cleanup Functions ---
 
-func (tq *TurnQueue) getCleanupThreshold(world *World) uint32 {
+func (tq *TurnQueue) getCleanupThreshold(world *ECS) uint32 {
 	// Base threshold
 	base_threshold := 100
 
-	entityCount := len(world.entities)
+	entityCount := len(world.Entities)
 	queueSize := tq.Len()
 
 	// More frequent cleanup with larger entity counts or queue sizes
@@ -222,7 +249,7 @@ func (tq *TurnQueue) getCleanupThreshold(world *World) uint32 {
 
 // CleanupDeadEntities removes invalid or dead entities from the queue.
 // Corresponds to the Rust method.
-func (tq *TurnQueue) CleanupDeadEntities(world *World) CleanupMetrics {
+func (tq *TurnQueue) CleanupDeadEntities(world *ECS) CleanupMetrics {
 	// Only run periodically to amortize cost
 	threshold := tq.getCleanupThreshold(world)
 	if tq.OperationsSinceCleanup < threshold {
@@ -258,9 +285,16 @@ func (tq *TurnQueue) CleanupDeadEntities(world *World) CleanupMetrics {
 		} else {
 			// Count removed entities
 			removedCount++
-			// Log removed entity (using helper for name)
-			log.Printf("TurnQueue: Removed dead entity from turn queue: %s\n",
-				GetEntityDebugName(world, entry.EntityID))
+
+			name, ok := world.GetName(entry.EntityID)
+			if ok {
+				// Log removed entity (using helper for name)
+				log.Printf("TurnQueue: Removed dead entity from turn queue: %s\n",
+					name)
+			} else {
+				log.Printf("TurnQueue: Removed dead entity from turn queue: %d\n",
+					entry.EntityID)
+			}
 		}
 	}
 

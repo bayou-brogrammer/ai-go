@@ -18,8 +18,6 @@ func (md *model) Update(msg gruid.Msg) gruid.Effect {
 		}
 	}
 
-	TurnSystem(md.game)
-
 	return md.update(msg)
 }
 
