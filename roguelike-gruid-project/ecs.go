@@ -34,6 +34,13 @@ func (w *World) CreateEntity() EntityID {
 	return id
 }
 
+func (w *World) EntityExists(id EntityID) bool {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	_, ok := w.entities[id]
+	return ok
+}
+
 // AddComponent adds a component to the specified entity.
 // If the entity already has a component of the same type, it's overwritten.
 func (w *World) AddComponent(id EntityID, component interface{}) {
@@ -92,7 +99,7 @@ func (w *World) DestroyEntity(id EntityID) {
 	delete(w.entities, id)
 }
 
-// --- System Query Helpers (Example - can be expanded) ---
+// --- System Query Helpers ---
 
 // QueryEntitiesWithComponents returns a list of EntityIDs that have all the specified component types.
 func (w *World) QueryEntitiesWithComponents(compTypes ...reflect.Type) []EntityID {
@@ -113,4 +120,13 @@ func (w *World) QueryEntitiesWithComponents(compTypes ...reflect.Type) []EntityI
 		}
 	}
 	return result
+}
+
+// --- Query Helpers---
+
+func (w *World) GetEntityName(id EntityID) (string, bool) {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	name, ok := w.entities[id][GetReflectType(Name{})]
+	return name.(string), ok
 }

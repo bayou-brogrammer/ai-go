@@ -1,8 +1,6 @@
 package main
 
 import (
-	"reflect"
-
 	"codeberg.org/anaseto/gruid"
 )
 
@@ -12,11 +10,11 @@ func (g *game) checkCollision(pos gruid.Point) bool {
 		return true // Out of bounds
 	}
 	// Check for blocking entities
-	for _, id := range g.ecs.QueryEntitiesWithComponents(reflect.TypeOf(Position{}), reflect.TypeOf(BlocksMovement{})) {
+	for _, id := range g.ecs.QueryEntitiesWithComponents(GetReflectType(Position{}), GetReflectType(BlocksMovement{})) {
 		if id == g.PlayerID {
 			continue
 		}
-		otherPos, ok := g.ecs.GetComponent(id, reflect.TypeOf(Position{}))
+		otherPos, ok := g.ecs.GetComponent(id, GetReflectType(Position{}))
 		if ok && otherPos.(Position).Point == pos {
 			return true // Collision with blocking entity
 		}
@@ -28,7 +26,7 @@ func (g *game) PlayerBump(delta gruid.Point) (bool, error) {
 	pid := g.PlayerID
 
 	// Update player position in ECS
-	positionType := reflect.TypeOf(Position{})
+	positionType := GetReflectType(Position{})
 	if comps, ok := g.ecs.entities[pid]; ok {
 		if pos, found := comps[positionType]; found {
 			currentPos := pos.(Position).Point

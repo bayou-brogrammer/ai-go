@@ -29,10 +29,7 @@ func main() {
 
 	// Initialize the game state and ECS World
 	gameMap, playerStart := NewMap(gameWidth, gameHeight) // Capture both return values
-	g := &game{
-		Map: gameMap,
-		ecs: NewWorld(),
-	}
+	g := NewGame(gameMap)
 
 	// Create the player entity
 	playerID := g.ecs.CreateEntity()
@@ -45,15 +42,12 @@ func main() {
 
 	g.PlayerID = playerID // Store the player ID in the game struct
 
-	// Create a new grid with standard 80x24 size.
 	gd := gruid.NewGrid(gameWidth, gameHeight)
-
-	// Create the main application's model, using grid gd.
-	m := &model{grid: gd, game: g}
+	m := &model{grid: gd, game: &game{}}
 
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver: driver,
 		Model:  m,
+		Driver: driver,
 	})
 
 	// start application
