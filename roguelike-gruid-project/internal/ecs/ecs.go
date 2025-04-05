@@ -1,11 +1,11 @@
-package game
+package ecs
 
 import (
 	"fmt"
 	"sync"
 
 	"codeberg.org/anaseto/gruid" // Added gruid import
-	. "github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/components"
+	. "github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
 	"github.com/sirupsen/logrus"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	"codeberg.org/anaseto/gruid"
 	"codeberg.org/anaseto/gruid/rl"
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/components"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
 	"github.com/sirupsen/logrus"
 
 	"slices"

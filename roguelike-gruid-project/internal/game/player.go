@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"codeberg.org/anaseto/gruid"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
 )
 
 // checkCollision checks if a given position is a valid move
@@ -32,7 +33,7 @@ func (g *Game) checkCollision(pos gruid.Point) bool {
 // EntityBump attempts to move the entity with the given ID by the delta.
 // It checks for map boundaries and collisions with other entities.
 // It returns true if the entity successfully moved, false otherwise (due to wall or collision).
-func (g *Game) EntityBump(entityID EntityID, delta gruid.Point) (moved bool, err error) {
+func (g *Game) EntityBump(entityID ecs.EntityID, delta gruid.Point) (moved bool, err error) {
 	currentPos, ok := g.ecs.GetPosition(entityID)
 	if !ok {
 		return false, fmt.Errorf("entity %d position not found", entityID)

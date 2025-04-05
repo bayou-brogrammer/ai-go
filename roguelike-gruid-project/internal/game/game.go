@@ -5,9 +5,12 @@ import (
 	"time"
 
 	"codeberg.org/anaseto/gruid"
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/components"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/turn"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ui"
 	"github.com/sirupsen/logrus"
+
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
 )
 
 // Game settings & map generation constants
@@ -28,17 +31,17 @@ type Game struct {
 	Depth int
 
 	Map       *Map
-	ecs       *ECS       // The Entity-Component-System manager
-	PlayerID  EntityID   // Store the player's entity ID
-	turnQueue *TurnQueue // Event queue for game events
+	ecs       *ecs.ECS        // The Entity-Component-System manager
+	PlayerID  ecs.EntityID    // Store the player's entity ID
+	turnQueue *turn.TurnQueue // Event queue for game events
 
 	rand *rand.Rand
 }
 
 func NewGame() *Game {
 	return &Game{
-		ecs:       NewECS(),
-		turnQueue: NewTurnQueue(),
+		ecs:       ecs.NewECS(),
+		turnQueue: turn.NewTurnQueue(),
 	}
 }
 
