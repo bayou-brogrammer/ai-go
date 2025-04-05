@@ -1,9 +1,8 @@
 package game
 
 import (
-	"fmt"
-
 	"codeberg.org/anaseto/gruid"
+	"github.com/sirupsen/logrus"
 )
 
 type action int
@@ -34,6 +33,8 @@ func (e actionError) Error() string {
 func (md *Model) normalModeAction(action action) (again bool, eff gruid.Effect, err error) {
 	g := md.game
 
+	logrus.Debugf("Normal mode action: %v\n", action)
+
 	switch action {
 	case ActionNone:
 		again = true
@@ -46,7 +47,7 @@ func (md *Model) normalModeAction(action action) (again bool, eff gruid.Effect, 
 		}
 		return !moved, eff, nil
 	default:
-		fmt.Printf("Unknown action: %v\n", action)
+		logrus.Debugf("Unknown action: %v\n", action)
 		err = actionErrorUnknown
 
 	}

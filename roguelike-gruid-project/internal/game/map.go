@@ -6,6 +6,7 @@ import (
 	"codeberg.org/anaseto/gruid"
 	"codeberg.org/anaseto/gruid/rl"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/components"
+	"github.com/sirupsen/logrus"
 
 	"slices"
 )
@@ -131,8 +132,9 @@ func (m *Map) Rune(c rl.Cell) (r rune) {
 func (m *Map) placeMonsters(g *Game, room Rect) {
 	// Determine number of monsters for this room (e.g., 0 to maxMonstersPerRoom)
 	numMonsters := rand.Intn(maxMonstersPerRoom + 1) // +1 because Intn is exclusive upper bound
+	logrus.Debugf("Placing %d monsters in room: %v", numMonsters, room)
 
-	for range numMonsters {
+	for i := 0; i < numMonsters; i++ {
 		// Find a random walkable tile within the room bounds
 		// Add +1 to x1, y1 and -1 to x2, y2 to avoid spawning on walls
 		x := rand.Intn(room.X2-room.X1-1) + room.X1 + 1
@@ -148,10 +150,14 @@ func (m *Map) placeMonsters(g *Game, room Rect) {
 			g.ecs.AddRenderable(monsterID, components.Renderable{Glyph: 'o', Color: gruid.ColorDefault}) // Example renderable (using default color for now)
 			g.ecs.AddAITag(monsterID, components.AITag{})                                                // Mark as AI-controlled
 
-			// Add to turn queue
-			g.turnQueue.Add(monsterID, g.turnQueue.CurrentTime) // Start at current time
+			// Add to turn queue at current turn time
+			logrus.Debugf("Created monster ID=%d at position %v, adding to turn queue at time %d",
+				monsterID, pos, g.turnQueue.CurrentTime+100)
+			g.turnQueue.Add(monsterID, g.turnQueue.CurrentTime+100)
+		} else {
+			// If tile is occupied or not walkable, we just skip spawning this monster for simplicity
+			logrus.Debugf("Failed to spawn monster at position %v - not walkable or occupied", pos)
 		}
-		// If tile is occupied or not walkable, we just skip spawning this monster for simplicity
 	}
 }
 

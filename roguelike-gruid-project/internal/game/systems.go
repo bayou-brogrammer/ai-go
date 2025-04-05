@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"codeberg.org/anaseto/gruid"
+	"github.com/sirupsen/logrus"
 )
 
 // MovementEvent represents a request to move an entity
@@ -15,6 +16,7 @@ type MovementEvent struct {
 
 // RenderSystem draws all entities with Position and Renderable components onto the grid.
 func RenderSystem(ecs *ECS, grid gruid.Grid) {
+
 	entityIDs := ecs.GetEntitiesWithPositionAndRenderable()
 
 	// Iterate through entities and draw them
@@ -24,11 +26,9 @@ func RenderSystem(ecs *ECS, grid gruid.Grid) {
 		ren, _ := ecs.GetRenderable(id)
 
 		// Set the cell in the grid
-		// Note: This assumes the grid has been cleared beforehand.
-		// We might add map bounds checking later.
 		grid.Set(pos, gruid.Cell{
 			Rune:  ren.Glyph,
-			Style: gruid.Style{Fg: ren.Color}, // Assuming default background for now
+			Style: gruid.Style{Fg: ren.Color}, // Use chosen color
 		})
 	}
 }
@@ -36,6 +36,8 @@ func RenderSystem(ecs *ECS, grid gruid.Grid) {
 // handleMonsterTurn determines and executes an action for a monster.
 // It returns the cost of the action taken.
 func handleMonsterTurn(g *Game, entityID EntityID) (cost uint, err error) {
+	logrus.Debugf("Handling monster turn for entity %d", entityID)
+
 	// Get monster position
 	_, ok := g.ecs.GetPosition(entityID)
 	if !ok {
@@ -44,10 +46,10 @@ func handleMonsterTurn(g *Game, entityID EntityID) (cost uint, err error) {
 
 	// Simple random walk AI
 	possibleMoves := []gruid.Point{
-		gruid.Point{X: -1, Y: 0}, // West
-		gruid.Point{X: 1, Y: 0},  // East
-		gruid.Point{X: 0, Y: -1}, // North
-		gruid.Point{X: 0, Y: 1},  // South
+		{X: -1, Y: 0}, // West
+		{X: 1, Y: 0},  // East
+		{X: 0, Y: -1}, // North
+		{X: 0, Y: 1},  // South
 	}
 
 	// Shuffle directions
@@ -61,7 +63,7 @@ func handleMonsterTurn(g *Game, entityID EntityID) (cost uint, err error) {
 		moved, bumpErr := g.EntityBump(entityID, delta)
 		if bumpErr != nil {
 			// Log error but maybe try another direction?
-			fmt.Printf("Error during monster %d bump check: %v\n", entityID, bumpErr)
+			logrus.Errorf("Error during monster %d bump check: %v", entityID, bumpErr)
 			continue // Try next direction
 		}
 
@@ -76,6 +78,6 @@ func handleMonsterTurn(g *Game, entityID EntityID) (cost uint, err error) {
 	}
 
 	// If no valid move found, monster waits (costs time)
-	// fmt.Printf("Monster %d waits.\n", entityID) // Optional debug log
-	return 100, nil // Return standard action cost for waiting
+	logrus.Debugf("Skipping monster %d.", entityID) // Optional debug log
+	return 100, nil                                 // Return standard action cost for waiting
 }

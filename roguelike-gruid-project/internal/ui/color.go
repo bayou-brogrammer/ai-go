@@ -7,6 +7,7 @@ const (
 	ColorPlayer gruid.Color = 1 + iota // skip special zero value gruid.ColorDefault
 	ColorLOS
 	ColorDark
+	ColorFlashingEnemy // New color for flashing enemies during their turn
 )
 
 // Those constants represent styling attributes.

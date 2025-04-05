@@ -6,6 +6,7 @@ import (
 
 	"codeberg.org/anaseto/gruid" // Added gruid import
 	. "github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/components"
+	"github.com/sirupsen/logrus"
 )
 
 // EntityID represents a unique identifier for an entity.
@@ -18,6 +19,8 @@ type ECS struct {
 	nextEntityID EntityID
 	mu           sync.RWMutex // To handle concurrent access
 
+	WaitingForInput map[EntityID]bool // entity ID: waiting for input
+
 	Entities    map[EntityID]Entity      // set of entities
 	Positions   map[EntityID]gruid.Point // entity ID: map position
 	Renderables map[EntityID]Renderable  // entity ID: map renderable
@@ -28,12 +31,13 @@ type ECS struct {
 // NewECS creates and initializes a new ECS.
 func NewECS() *ECS {
 	return &ECS{
-		nextEntityID: 1, // Start IDs from 1
-		Entities:     make(map[EntityID]Entity),
-		Positions:    make(map[EntityID]gruid.Point),
-		Renderables:  make(map[EntityID]Renderable),
-		Names:        make(map[EntityID]string),
-		AITags:       make(map[EntityID]AITag), // Initialize AITags map
+		nextEntityID:    1, // Start IDs from 1
+		Entities:        make(map[EntityID]Entity),
+		Positions:       make(map[EntityID]gruid.Point),
+		Renderables:     make(map[EntityID]Renderable),
+		Names:           make(map[EntityID]string),
+		AITags:          make(map[EntityID]AITag), // Initialize AITags map
+		WaitingForInput: make(map[EntityID]bool),
 	}
 }
 
@@ -117,7 +121,7 @@ func (ecs *ECS) AddPosition(id EntityID, position gruid.Point) *ECS {
 	ecs.mu.Lock()
 	defer ecs.mu.Unlock()
 	if !ecs.entityExistsUnlocked(id) {
-		fmt.Printf("Warning: Attempted to add Position to non-existent entity %d\n", id)
+		logrus.Debugf("Warning: Attempted to add Position to non-existent entity %d\n", id)
 		return ecs
 	}
 	ecs.Positions[id] = position
@@ -129,7 +133,7 @@ func (ecs *ECS) AddRenderable(id EntityID, renderable Renderable) *ECS {
 	ecs.mu.Lock()
 	defer ecs.mu.Unlock()
 	if !ecs.entityExistsUnlocked(id) {
-		fmt.Printf("Warning: Attempted to add Renderable to non-existent entity %d\n", id)
+		logrus.Debugf("Warning: Attempted to add Renderable to non-existent entity %d\n", id)
 		return ecs
 	}
 	ecs.Renderables[id] = renderable
@@ -141,7 +145,7 @@ func (ecs *ECS) AddName(id EntityID, name string) *ECS {
 	ecs.mu.Lock()
 	defer ecs.mu.Unlock()
 	if !ecs.entityExistsUnlocked(id) {
-		fmt.Printf("Warning: Attempted to add Name to non-existent entity %d\n", id)
+		logrus.Debugf("Warning: Attempted to add Name to non-existent entity %d\n", id)
 		return ecs
 	}
 	ecs.Names[id] = name
@@ -153,7 +157,7 @@ func (ecs *ECS) AddAITag(id EntityID, tag AITag) *ECS {
 	ecs.mu.Lock()
 	defer ecs.mu.Unlock()
 	if !ecs.entityExistsUnlocked(id) {
-		fmt.Printf("Warning: Attempted to add AITag to non-existent entity %d\n", id)
+		logrus.Debugf("Warning: Attempted to add AITag to non-existent entity %d\n", id)
 		return ecs
 	}
 	ecs.AITags[id] = tag
@@ -190,6 +194,7 @@ func (ecs *ECS) GetName(id EntityID) (string, bool) {
 func (ecs *ECS) HasAITag(id EntityID) bool {
 	ecs.mu.RLock()
 	defer ecs.mu.RUnlock()
+
 	_, ok := ecs.AITags[id]
 	return ok
 }

@@ -3,10 +3,10 @@ package game
 import (
 	"container/heap"
 	"fmt"
-	"log"
 	"time"
 
 	"codeberg.org/anaseto/gruid"
+	"github.com/sirupsen/logrus"
 )
 
 // GameAction is an interface for actions that can be performed in the game.
@@ -51,17 +51,24 @@ type TurnEntry struct {
 
 // --- Heap Implementation ---
 // We need a type that implements heap.Interface based on TurnEntry.
-// A slice of TurnEntry pointers or values works. Using values is often simpler.
-
+// This mirrors Rust's BinaryHeap<Reverse<(u64, Entity)>> by creating a min-heap
+// where the smallest time values are at the top of the heap.
 type turnHeap []TurnEntry
 
 // Len returns the number of elements in the heap.
 func (h turnHeap) Len() int { return len(h) }
 
-// Less reports whether the element with index i
-// should sort before the element with index j.
-// We want a min-heap based on Time.
-func (h turnHeap) Less(i, j int) bool { return h[i].Time < h[j].Time }
+// Less reports whether the element with index i should sort before the element with index j.
+// To create a min-heap (equivalent to Rust's BinaryHeap<Reverse<...>>), we return true
+// when h[i].Time < h[j].Time. This ensures entries with the smallest time are at the top.
+func (h turnHeap) Less(i, j int) bool {
+	// Primary sort by time
+	if h[i].Time != h[j].Time {
+		return h[i].Time < h[j].Time
+	}
+	// Secondary sort by EntityID (for stable ordering when times are equal)
+	return h[i].EntityID < h[j].EntityID
+}
 
 // Swap swaps the elements with indexes i and j.
 func (h turnHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
@@ -78,8 +85,7 @@ func (h *turnHeap) Push(x any) {
 func (h *turnHeap) Pop() any {
 	old := *h
 	n := len(old)
-	item := old[n-1] // Get the last element
-	// old[n-1] = nil // Avoid memory leak if TurnEntry contained pointers
+	item := old[n-1]  // Get the last element
 	*h = old[0 : n-1] // Truncate the slice
 	return item       // Return the popped item (which was the root)
 }
@@ -110,10 +116,17 @@ type TurnQueue struct {
 // --- Constructor and Methods ---
 
 // NewTurnQueue creates and initializes a new TurnQueue.
-// This acts like the Default implementation + initialization in Rust.
+// This creates a Go equivalent of Rust's BinaryHeap<Reverse<(u64, Entity)>>,
+// which is a min-heap where entries with the smallest time are processed first.
 func NewTurnQueue() *TurnQueue {
+	// Create an empty turnHeap
 	h := &turnHeap{}
-	heap.Init(h) // Initialize the heap (establishes heap invariants)
+
+	// Initialize the heap structure
+	// This establishes the heap invariant: for every element at index i,
+	// the element at index 2*i+1 and 2*i+2 (if they exist) are children of the element at i.
+	heap.Init(h)
+
 	return &TurnQueue{
 		CurrentTime:            0,
 		queue:                  h,
@@ -125,10 +138,15 @@ func NewTurnQueue() *TurnQueue {
 
 // Add adds an entity with its scheduled time to the queue.
 func (tq *TurnQueue) Add(entityID EntityID, time uint64) {
+	// Create a new entry with the specified time and entity ID
 	entry := TurnEntry{Time: time, EntityID: entityID}
+
+	// Push the entry onto the heap
+	// The heap package will maintain the min-heap property
 	heap.Push(tq.queue, entry)
-	// Increment cleanup counter if needed
-	// tq.OperationsSinceCleanup++
+
+	// For debugging purposes
+	logrus.Debugf("Added entity %d to turn queue with time %d", entityID, time)
 }
 
 // Next removes and returns the next entity (the one with the smallest time)
@@ -139,11 +157,13 @@ func (tq *TurnQueue) Next() (TurnEntry, bool) {
 		return TurnEntry{}, false
 	}
 
-	// heap.Pop returns any, so we perform a type assertion.
+	// heap.Pop maintains the min-heap property by:
+	// 1. Moving the last element to the root
+	// 2. Shifting it down until heap property is restored
+	// 3. Returning the original root
 	entry := heap.Pop(tq.queue).(TurnEntry)
-	// Increment cleanup counter or metrics if needed
-	// tq.OperationsSinceCleanup++
-	// tq.TotalEntitiesRemoved++
+
+	logrus.Debugf("Popped entity %d from turn queue (time: %d)", entry.EntityID, entry.Time)
 	return entry, true
 }
 
@@ -154,8 +174,11 @@ func (tq *TurnQueue) Peek() (TurnEntry, bool) {
 	if tq.queue.Len() == 0 {
 		return TurnEntry{}, false
 	}
-	// The minimum element in a min-heap is always at index 0.
-	return (*tq.queue)[0], true
+
+	// In a min-heap, the minimum element is always at index 0
+	entry := (*tq.queue)[0]
+	logrus.Debugf("Peeked entity %d from turn queue (time: %d)", entry.EntityID, entry.Time)
+	return entry, true
 }
 
 // Len returns the number of entities currently in the queue.
@@ -168,9 +191,61 @@ func (tq *TurnQueue) IsEmpty() bool {
 	return tq.queue.Len() == 0
 }
 
+// PrintQueue prints the current state of the turn queue.
+// This is primarily for debugging purposes.
 func (tq *TurnQueue) PrintQueue() {
-	for _, entry := range *tq.queue {
-		fmt.Printf("EntityID: %d, Time: %d\n", entry.EntityID, entry.Time)
+	if tq.IsEmpty() {
+		logrus.Debug("---- Turn Queue: EMPTY ----")
+		return
+	}
+
+	logrus.Debug("---- Turn Queue Contents ----")
+	logrus.Debugf("Current Game Time: %d\n", tq.CurrentTime)
+	logrus.Debugf("Queue Size: %d\n", tq.Len())
+
+	// Display the raw queue in heap order
+	logrus.Debug("Queue (in heap order):")
+	for i, entry := range *tq.queue {
+		delta := int64(entry.Time) - int64(tq.CurrentTime)
+		logrus.Debugf("[%d] EntityID: %d, Time: %d (Δ%d from current)\n",
+			i, entry.EntityID, entry.Time, delta)
+	}
+
+	// Also display the queue in sorted order (to show actual processing order)
+	logrus.Debug("\nProcessing order (sorted by time):")
+	// Make a copy of the queue to sort
+	sorted := make([]TurnEntry, len(*tq.queue))
+	copy(sorted, *tq.queue)
+
+	// Sort by time, then by EntityID for stable ordering
+	tq.sortEntriesByTime(sorted)
+
+	for i, entry := range sorted {
+		delta := int64(entry.Time) - int64(tq.CurrentTime)
+		logrus.Debugf("%d. EntityID: %d, Time: %d (Δ%d from current)\n",
+			i+1, entry.EntityID, entry.Time, delta)
+	}
+
+	logrus.Debug("----------------------------")
+}
+
+// sortEntriesByTime sorts a slice of TurnEntry by time, then by EntityID
+func (tq *TurnQueue) sortEntriesByTime(entries []TurnEntry) {
+	// Use a simple insertion sort for small lists (typically the case for turn queues)
+	for i := 1; i < len(entries); i++ {
+		for j := i; j > 0; j-- {
+			// Primary sort by time
+			if entries[j].Time < entries[j-1].Time {
+				entries[j], entries[j-1] = entries[j-1], entries[j]
+			} else if entries[j].Time == entries[j-1].Time &&
+				entries[j].EntityID < entries[j-1].EntityID {
+				// Secondary sort by EntityID for stable ordering
+				entries[j], entries[j-1] = entries[j-1], entries[j]
+			} else {
+				// Stop if we're in the right position
+				break
+			}
+		}
 	}
 }
 
@@ -264,7 +339,7 @@ func (tq *TurnQueue) CleanupDeadEntities(world *ECS) CleanupMetrics {
 		return CleanupMetrics{}
 	}
 
-	log.Println("TurnQueue: Cleaning up dead entities...") // Use Go's log package
+	logrus.Debug("TurnQueue: Cleaning up dead entities...") // Use Go's log package
 
 	queueSizeBefore := tq.Len()
 	startTime := time.Now() // Use Go's time package
@@ -286,7 +361,7 @@ func (tq *TurnQueue) CleanupDeadEntities(world *ECS) CleanupMetrics {
 
 		if entityValid {
 			// Keep valid entities by adding them to the new slice
-			// We don't use heap.Push here yet, just build the slice.
+			// W	e don't use heap.Push here yet, just build the slice.
 			newQueueSlice = append(newQueueSlice, entry)
 		} else {
 			// Count removed entities
@@ -295,10 +370,10 @@ func (tq *TurnQueue) CleanupDeadEntities(world *ECS) CleanupMetrics {
 			name, ok := world.GetName(entry.EntityID)
 			if ok {
 				// Log removed entity (using helper for name)
-				log.Printf("TurnQueue: Removed dead entity from turn queue: %s\n",
+				logrus.Debugf("TurnQueue: Removed dead entity from turn queue: %s\n",
 					name)
 			} else {
-				log.Printf("TurnQueue: Removed dead entity from turn queue: %d\n",
+				logrus.Debugf("TurnQueue: Removed dead entity from turn queue: %d\n",
 					entry.EntityID)
 			}
 		}
@@ -322,6 +397,6 @@ func (tq *TurnQueue) CleanupDeadEntities(world *ECS) CleanupMetrics {
 		ProcessingTime:  time.Since(startTime),
 	}
 
-	log.Printf("TurnQueue: Cleanup finished. %s\n", metrics)
+	logrus.Debugf("TurnQueue: Cleanup finished. %s\n", metrics)
 	return metrics
 }

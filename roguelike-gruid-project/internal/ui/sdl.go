@@ -4,10 +4,9 @@
 package ui
 
 import (
-	"log"
-
 	"codeberg.org/anaseto/gruid"
 	sdl "codeberg.org/anaseto/gruid-sdl"
+	"github.com/sirupsen/logrus"
 )
 
 var driver gruid.Driver
@@ -16,7 +15,7 @@ func init() {
 	t, err := GetTileDrawer()
 
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	dr := sdl.NewDriver(sdl.Config{

@@ -31,24 +31,17 @@ func (t *TileDrawer) GetImage(c gruid.Cell) image.Image {
 	bg := image.NewUniform(color.RGBA{0x10, 0x3c, 0x48, 255})
 
 	// We define non default-colors (for FOV, ...).
-	// switch c.Style.Bg {
-	// case ColorFOV:
-	// 	bg = image.NewUniform(color.RGBA{0x18, 0x49, 0x56, 255})
-	// }
-	// switch c.Style.Fg {
-	// case ColorPlayer, ColorLogItemUse:
-	// 	fg = image.NewUniform(color.RGBA{0x46, 0x95, 0xf7, 255})
-	// case ColorMonster:
-	// 	fg = image.NewUniform(color.RGBA{0xfa, 0x57, 0x50, 255})
-	// case ColorLogPlayerAttack, ColorStatusHealthy:
-	// 	fg = image.NewUniform(color.RGBA{0x75, 0xb9, 0x38, 255})
-	// case ColorLogMonsterAttack, ColorStatusWounded:
-	// 	fg = image.NewUniform(color.RGBA{0xed, 0x86, 0x49, 255})
-	// case ColorLogSpecial:
-	// 	fg = image.NewUniform(color.RGBA{0xf2, 0x75, 0xbe, 255})
-	// case ColorConsumable, ColorMenuActive:
-	// 	fg = image.NewUniform(color.RGBA{0xdb, 0xb3, 0x2d, 255})
-	// }
+	switch c.Style.Fg {
+	case ColorPlayer:
+		fg = image.NewUniform(color.RGBA{0x46, 0x95, 0xf7, 255}) // Blue for player
+	case ColorFlashingEnemy:
+		fg = image.NewUniform(color.RGBA{0xfa, 0xb7, 0x38, 255}) // Bright yellow for flashing enemies
+	}
+
+	switch c.Style.Bg {
+	case ColorDark:
+		bg = image.NewUniform(color.RGBA{0x18, 0x49, 0x56, 255})
+	}
 
 	if c.Style.Attrs&AttrReverse != 0 {
 		fg, bg = bg, fg

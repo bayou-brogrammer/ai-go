@@ -6,6 +6,8 @@ import (
 
 	"codeberg.org/anaseto/gruid"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/components"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ui"
+	"github.com/sirupsen/logrus"
 )
 
 // Game settings & map generation constants
@@ -54,13 +56,15 @@ func (g *Game) InitLevel() {
 
 func (g *Game) InitPlayer(playerStart gruid.Point) {
 	// Create the player entity
-	playerID := g.ecs.AddEntity(components.Player{})
+	playerID := g.ecs.AddEntity(components.PlayerTag{})
 	g.PlayerID = playerID // Store the player ID in the game struct
+
+	logrus.Debugf("Player ID: %d\n", playerID)
 
 	// Add components to the player
 	// Use the start position returned by NewMap
 	g.ecs.AddPosition(playerID, playerStart)
-	g.ecs.AddRenderable(playerID, components.Renderable{Glyph: '@', Color: gruid.ColorDefault})
+	g.ecs.AddRenderable(playerID, components.Renderable{Glyph: '@', Color: ui.ColorPlayer})
 
 	// Add the player to the turn queue
 	g.turnQueue.Add(playerID, g.turnQueue.CurrentTime)
