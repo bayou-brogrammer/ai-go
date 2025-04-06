@@ -33,7 +33,7 @@ func main() {
 	rand.New(rand.NewSource(seed))
 
 	// Create game grid
-	gd := gruid.NewGrid(game.Width, game.Height)
+	gd := gruid.NewGrid(config.DungeonWidth, config.DungeonHeight)
 
 	// Create game model
 	m := game.NewModel(gd)

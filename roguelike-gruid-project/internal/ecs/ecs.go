@@ -25,6 +25,7 @@ type ECS struct {
 	Names       map[EntityID]string      // entity ID: map name
 	AITags      map[EntityID]AITag       // entity ID: presence of AI tag
 	TurnActors  map[EntityID]TurnActor   // entity ID: presence of TurnActor
+	FOVs        map[EntityID]*FOV        // entity ID: FOV
 }
 
 // NewECS creates and initializes a new ECS.
@@ -37,6 +38,7 @@ func NewECS() *ECS {
 		Names:        make(map[EntityID]string),
 		AITags:       make(map[EntityID]AITag),
 		TurnActors:   make(map[EntityID]TurnActor),
+		FOVs:         make(map[EntityID]*FOV),
 	}
 }
 
@@ -113,6 +115,26 @@ func (ecs *ECS) GetEntitiesWithPositionAndRenderable() []EntityID {
 	return ids
 }
 
+// GetEntitiesWithPositionAndFOV queries entities having both Position and FOV components.
+func (ecs *ECS) GetEntitiesWithPositionAndFOV() []EntityID {
+	ecs.mu.RLock()
+	defer ecs.mu.RUnlock()
+
+	var ids []EntityID
+	// Iterate over the smaller map (likely FOVs) for potential efficiency
+	for id := range ecs.FOVs {
+		// Check if the entity also has a Position
+		if _, posOk := ecs.Positions[id]; posOk {
+			// Ensure the entity actually still exists (optional, but safer)
+			if ecs.entityExistsUnlocked(id) {
+				ids = append(ids, id)
+			}
+		}
+	}
+	return ids
+}
+
+
 // --- Setters ---
 
 // AddPosition adds or updates the Position component for an entity.
@@ -174,6 +196,17 @@ func (ecs *ECS) AddTurnActor(id EntityID, actor TurnActor) *ECS {
 	return ecs
 }
 
+func (ecs *ECS) AddFOV(id EntityID, fov *FOV) *ECS {
+	ecs.mu.Lock()
+	defer ecs.mu.Unlock()
+	if !ecs.entityExistsUnlocked(id) {
+		logrus.Debugf("Warning: Attempted to add FOV to non-existent entity %d\n", id)
+		return ecs
+	}
+	ecs.FOVs[id] = fov
+	return ecs
+}
+
 // --- Getters ---
 
 // GetPosition retrieves the Position component for an entity.
@@ -208,8 +241,14 @@ func (ecs *ECS) GetTurnActor(id EntityID) (TurnActor, bool) {
 }
 
 func (ecs *ECS) GetTurnActorUnchecked(id EntityID) TurnActor {
-	actor, _ := ecs.TurnActors[id]
-	return actor
+	return ecs.TurnActors[id]
+}
+
+func (ecs *ECS) GetFOV(id EntityID) (*FOV, bool) {
+	ecs.mu.RLock()
+	defer ecs.mu.RUnlock()
+	fov, ok := ecs.FOVs[id]
+	return fov, ok
 }
 
 // HasAITag checks if an entity has the AITag component.

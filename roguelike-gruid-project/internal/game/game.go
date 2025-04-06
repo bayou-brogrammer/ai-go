@@ -4,19 +4,9 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/config"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
 	turn "github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/turn_queue"
-)
-
-// Game settings & map generation constants
-const (
-	Width              = 80 // Default width
-	Height             = 24 // Default height
-	maxRooms           = 10 // Max rooms on a level
-	roomMinSize        = 6  // Min width/height of a room
-	roomMaxSize        = 10 // Max width/height of a room
-	maxMonstersPerRoom = 2  // Max monsters per room (excluding first)
-	// fovRadius = 8 // How far the player can see - Keep commented for now
 )
 
 // Removed redundant const block
@@ -48,7 +38,7 @@ func (g *Game) InitLevel() {
 
 	g.Depth = 1
 
-	g.Map = NewMap(Width, Height)
-	playerStart := g.Map.generateMap(g, Width, Height) // Pass game struct
+	g.Map = NewMap(config.DungeonWidth, config.DungeonHeight)
+	playerStart := g.Map.generateMap(g, config.DungeonWidth, config.DungeonHeight) // Pass game struct
 	g.SpawnPlayer(playerStart)
 }

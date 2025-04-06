@@ -5,24 +5,78 @@ import (
 
 	"codeberg.org/anaseto/gruid"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components" // Added for FOV type
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
 // RenderSystem draws all entities with Position and Renderable components onto the grid.
-func RenderSystem(ecs *ecs.ECS, grid gruid.Grid) {
+// RenderSystem draws entities with Position and Renderable components onto the grid,
+// respecting the player's field of view. It now requires the player's FOV component
+// and the map width to perform visibility checks.
+func RenderSystem(ecs *ecs.ECS, grid gruid.Grid, playerFOV *components.FOV, mapWidth int) {
+	utils.Assert(ecs != nil, "ECS is nil")
+	utils.Assert(playerFOV != nil, "Player FOV is nil")
+	utils.Assert(mapWidth > 0, "Map width is not positive")
+
 	entityIDs := ecs.GetEntitiesWithPositionAndRenderable()
 
 	// Iterate through entities and draw them
 	for _, id := range entityIDs {
 		// Retrieve components (we know they exist from the query)
 		pos, _ := ecs.GetPosition(id)
-		ren, _ := ecs.GetRenderable(id)
+		ren, renOk := ecs.GetRenderable(id)
+		if !renOk {
+			continue
+		} // Should not happen based on query, but safe check
 
-		// Set the cell in the grid
-		grid.Set(pos, gruid.Cell{
-			Rune:  ren.Glyph,
-			Style: gruid.Style{Fg: ren.Color}, // Use chosen color
-		})
+		// Only draw the entity if its position is visible to the player
+		if playerFOV.IsVisible(pos, mapWidth) {
+			// Set the cell in the grid
+			grid.Set(pos, gruid.Cell{
+				Rune:  ren.Glyph,
+				Style: gruid.Style{Fg: ren.Color}, // Use chosen color
+			})
+		}
+	}
+}
+
+// FOVSystem updates the visibility for all entities with an FOV component.
+func FOVSystem(g *Game) {
+	// Query entities with Position and FOV components
+	entities := g.ecs.GetEntitiesWithPositionAndFOV()
+
+	// Define the passable function once (reusing Map's IsOpaque)
+	passable := func(p gruid.Point) bool {
+		return !g.Map.IsOpaque(p)
+	}
+
+	for _, id := range entities {
+		posCompData, posOk := g.ecs.GetPosition(id) // Rename variable to avoid conflict
+		fovComp, fovOk := g.ecs.GetFOV(id)
+
+		if !posOk || !fovOk {
+			logrus.Warnf("Entity %d missing Position or FOV component in FOVSystem", id)
+			continue
+		}
+
+		// Clear the entity's current visibility
+		fovComp.ClearVisible()
+
+		// Calculate new visibility using the component's calculator
+		fovCalculator := fovComp.GetFOVCalculator()
+		visibleTiles := fovCalculator.SSCVisionMap(posCompData, fovComp.Range, passable, false)
+		visibleTiles = utils.DrawFilledCircle(visibleTiles, fovComp.Range, posCompData)
+
+		// Update visibility and explored status for points in the circle
+		for _, p := range visibleTiles {
+			fovComp.SetVisible(p, g.Map.Width)
+
+			// If this is the player, also update the global explored map
+			if id == g.PlayerID {
+				g.Map.SetExplored(p)
+			}
+		}
 	}
 }
 

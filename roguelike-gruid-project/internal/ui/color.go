@@ -8,6 +8,10 @@ const (
 	ColorLOS
 	ColorDark
 	ColorMonster
+	ColorVisibleFloor
+	ColorVisibleWall
+	ColorExploredFloor
+	ColorExploredWall
 )
 
 // Those constants represent styling attributes.

@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
 # Lessons Learned
 
 This file serves as a learning journal for the project, capturing important patterns, preferences, and project intelligence.

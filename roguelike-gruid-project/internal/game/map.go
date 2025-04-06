@@ -2,12 +2,19 @@ package game
 
 import (
 	"math/rand"
+	"slices"
 
 	"codeberg.org/anaseto/gruid"
-	"codeberg.org/anaseto/gruid/rl"
+	"codeberg.org/anaseto/gruid/rl" // Use rl package which contains FOV
 	"github.com/sirupsen/logrus"
+)
 
-	"slices"
+// Game settings & map generation constants
+const (
+	maxRooms           = 10 // Max rooms on a level
+	roomMinSize        = 6  // Min width/height of a room
+	roomMaxSize        = 10 // Max width/height of a room
+	maxMonstersPerRoom = 2  // Max monsters per room (excluding first)
 )
 
 // TileType represents the type of a map tile.
@@ -22,17 +29,14 @@ type Map struct {
 	Grid     rl.Grid // Stores the map cells (rune, style, attributes)
 	Width    int
 	Height   int
-	Visible  map[gruid.Point]bool // Tiles currently visible to the player
-	Explored map[gruid.Point]bool // Tiles that have ever been visible
+	Explored []uint64 // Bitset for explored tiles (Global map knowledge)
 }
 
 // NewMap creates a new map initialized with walls and visibility data.
-// It now returns the map and the player's starting position.
 func NewMap(width, height int) *Map {
 	m := &Map{
 		Grid:     rl.NewGrid(width, height),
-		Visible:  make(map[gruid.Point]bool), // Initialize visibility slice
-		Explored: make(map[gruid.Point]bool), // Initialize explored slice
+		Explored: make([]uint64, (width*height+63)/64), // Initialize explored bitset
 		Width:    width,
 		Height:   height,
 	}
@@ -40,16 +44,13 @@ func NewMap(width, height int) *Map {
 	return m
 }
 
-// generateMap creates a new map layout with rooms and tunnels.
-// generateMap creates a new map layout with rooms and tunnels, and spawns monsters.
-// It now takes the game struct to access ECS and TurnQueue.
 // generateMap creates a new map layout with rooms and tunnels, and spawns monsters.
 // It now takes the game struct to access ECS and TurnQueue.
 func (m *Map) generateMap(g *Game, width, height int) gruid.Point { // Added *Game param
 	m.Grid.Fill(WallCell)
 
 	var rooms []Rect
-	var playerStart gruid.Point
+	var playerStart gruid.Point = gruid.Point{X: 0, Y: 0}
 
 	for range maxRooms {
 		w := rand.Intn(roomMaxSize-roomMinSize+1) + roomMinSize
@@ -96,11 +97,11 @@ func (m *Map) InBounds(p gruid.Point) bool {
 	return p.X >= 0 && p.X < m.Width && p.Y >= 0 && p.Y < m.Height
 }
 
+// isWalkable checks if a tile is a floor tile.
 func (m *Map) isWalkable(p gruid.Point) bool {
 	if !m.InBounds(p) {
 		return false
 	}
-
 	return m.Grid.At(p) == FloorCell
 }
 
@@ -112,11 +113,54 @@ func (m *Map) IsWall(p gruid.Point) bool {
 	return m.Grid.At(p) == WallCell
 }
 
-// IsOpaque checks if a tile blocks FOV. Required by fov.Compute.
+// --- Map State Methods ---
+
+// IsOpaque checks if a tile blocks FOV. Required by FOV calculations.
 func (m *Map) IsOpaque(p gruid.Point) bool {
-	return m.IsWall(p) // For now, only walls block sight
+	// Treat out-of-bounds positions as opaque walls
+	if !m.InBounds(p) {
+		return true
+	}
+
+	return m.Grid.At(p) == WallCell // Walls block sight
 }
 
+// SetExplored marks a point as explored in the global map bitset.
+// This should typically only be called based on the player's FOV results.
+func (m *Map) SetExplored(p gruid.Point) {
+	if !m.InBounds(p) {
+		return
+	}
+	idx := p.Y*m.Width + p.X
+	sliceIdx := idx / 64
+	bitIdx := uint(idx % 64)
+	mask := uint64(1 << bitIdx)
+
+	// Check bounds before writing
+	if sliceIdx < len(m.Explored) {
+		m.Explored[sliceIdx] |= mask // Set explored bit
+	}
+}
+
+// IsExplored checks if a point has ever been explored using the global bitset.
+func (m *Map) IsExplored(p gruid.Point) bool {
+	if !m.InBounds(p) {
+		return false
+	}
+	idx := p.Y*m.Width + p.X
+	sliceIdx := idx / 64
+	bitIdx := uint(idx % 64)
+
+	// Check bounds before reading
+	if sliceIdx >= len(m.Explored) {
+		return false // Treat out-of-bounds index as not explored
+	}
+	return (m.Explored[sliceIdx] & (1 << bitIdx)) != 0
+}
+
+// --- End Map State Methods ---
+
+// Rune determines the character representation for a given map cell type.
 func (m *Map) Rune(c rl.Cell) (r rune) {
 	switch c {
 	case WallCell:

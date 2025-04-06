@@ -18,7 +18,8 @@ func (g *Game) SpawnPlayer(playerStart gruid.Point) {
 	// Use the start position returned by NewMap
 	g.ecs.AddPosition(playerID, playerStart).
 		AddRenderable(playerID, components.Renderable{Glyph: '@', Color: ui.ColorPlayer}).
-		AddTurnActor(playerID, components.NewTurnActor(100))
+		AddTurnActor(playerID, components.NewTurnActor(100)).
+		AddFOV(playerID, components.NewFOVComponent(4, g.Map.Width, g.Map.Height)) // Use correct constructor
 
 	// Add the player to the turn queue
 	g.turnQueue.Add(playerID, g.turnQueue.CurrentTime)
@@ -52,7 +53,8 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 		AddPosition(monsterID, pos).
 		AddRenderable(monsterID, components.Renderable{Glyph: rune, Color: ui.ColorMonster}).
 		AddTurnActor(monsterID, components.NewTurnActor(speed)).
-		AddAITag(monsterID)
+		AddAITag(monsterID).
+		AddFOV(monsterID, components.NewFOVComponent(6, g.Map.Width, g.Map.Height)) // Use correct constructor
 
 	// Add to turn queue at current turn time
 	logrus.Debugf("Created monster ID=%d at position %v, adding to turn queue at time %d",

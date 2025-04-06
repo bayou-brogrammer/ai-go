@@ -4,6 +4,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 
@@ -36,6 +37,14 @@ func (t *TileDrawer) GetImage(c gruid.Cell) image.Image {
 		fg = image.NewUniform(color.RGBA{0x46, 0x95, 0xf7, 255}) // Blue for player
 	case ColorMonster:
 		fg = image.NewUniform(color.RGBA{0xfa, 0xb7, 0x38, 255}) // Yellow for monster
+	case ColorVisibleFloor:
+		fg = image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255}) // White for visible floor #ADBCBC
+	case ColorVisibleWall:
+		fg = image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255}) // White for visible wall #ADBCBC
+	case ColorExploredFloor:
+		fg = image.NewUniform(color.RGBA{0x20, 0x20, 0x20, 255}) // Very dark gray for explored floor #202020
+	case ColorExploredWall:
+		fg = image.NewUniform(color.RGBA{0x20, 0x20, 0x20, 255}) // Very dark gray for explored wall #202020
 	}
 
 	switch c.Style.Bg {
@@ -61,15 +70,16 @@ func (t *TileDrawer) TileSize() gruid.Point {
 // GetTileDrawer returns a TileDrawer that implements TileManager for the sdl
 // driver, or an error if there were problems setting up the font face.
 func GetTileDrawer() (*TileDrawer, error) {
-	t := &TileDrawer{}
-	var err error
-	// We get a monospace font TTF.
-	font, err := opentype.Parse(gomono.TTF)
+	// Parse the font bytes
+	parsedFont, err := opentype.Parse(gomono.TTF)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse font: %w", err)
 	}
+
+	t := &TileDrawer{}
+
 	// We retrieve a font face.
-	face, err := opentype.NewFace(font, &opentype.FaceOptions{
+	face, err := opentype.NewFace(parsedFont, &opentype.FaceOptions{
 		Size: 24,
 		DPI:  72,
 	})
