@@ -1,9 +1,8 @@
 package components
 
-import "container/list"
-
-// WaitingForInput is a component that indicates that the entity is waiting for input
-type WaitingForInput struct{}
+import (
+	"container/list"
+)
 
 // TurnActor represents an entity that takes turns in the game
 type TurnActor struct {
@@ -24,18 +23,18 @@ func NewTurnActor(speed uint64) TurnActor {
 }
 
 // QueueAction adds an action to the back of the action queue
-func (ta *TurnActor) QueueAction(action interface{}) *TurnActor {
+func (ta *TurnActor) QueueAction(action any) *TurnActor {
 	ta.actions.PushBack(action)
 	return ta
 }
 
 // AddAction adds an action to the back of the action queue
-func (ta *TurnActor) AddAction(action interface{}) {
+func (ta *TurnActor) AddAction(action any) {
 	ta.actions.PushBack(action)
 }
 
 // NextAction removes and returns the next action from the queue
-func (ta *TurnActor) NextAction() interface{} {
+func (ta *TurnActor) NextAction() any {
 	if ta.actions.Len() == 0 {
 		return nil
 	}
@@ -45,7 +44,7 @@ func (ta *TurnActor) NextAction() interface{} {
 }
 
 // PeekNextAction returns the next action from the queue without removing it
-func (ta *TurnActor) PeekNextAction() interface{} {
+func (ta *TurnActor) PeekNextAction() any {
 	if ta.actions.Len() == 0 {
 		return nil
 	}

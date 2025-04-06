@@ -28,17 +28,20 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 		ts = ts.Foreground(tc.ColorNavy) // blue color for the player
 	case ColorLOS:
 		ts = ts.Foreground(tc.ColorYellow)
-	case ColorFlashingEnemy:
-		ts = ts.Foreground(tc.ColorYellow).Bold(true) // Bold yellow for flashing enemies
+	case ColorMonster:
+		ts = ts.Foreground(tc.ColorRed)
 	}
+
 	ts = ts.Background(tc.ColorBlack)
 	switch st.Bg {
 	case ColorDark:
 		ts = ts.Background(tc.ColorDefault)
 	}
+
 	switch st.Attrs {
 	case AttrReverse:
 		ts = ts.Reverse(true)
 	}
+
 	return ts
 }

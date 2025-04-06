@@ -41,23 +41,28 @@ Create a basic, playable roguelike game in the terminal using Go and `gruid`, fe
 - Map tiles (`DrawMap`) and Entities (`RenderSystem`) are rendered in the correct order in `model.Draw`.
 - Basic map generation with rooms and corridors is implemented.
 - Player starts in the center of the first generated room.
-- Player movement with arrow keys and collision detection is implemented (`model.Update`, `actions.go`).
-- Basic `TurnQueue` using `container/heap` is implemented (`turn.go`).
-- `GameAction` interface and `MoveAction` struct defined (`turn.go`).
+- Player movement with arrow keys and collision detection is implemented.
+- **Turn-based system with action costs is implemented:**
+  - `TurnQueue` (using `container/heap`) manages actor turns based on scheduled time.
+  - `GameAction` interface defines actions with associated costs.
+  - `processTurnQueue` handles the main turn loop, processing monster turns automatically.
+  - Player input is handled correctly within the turn structure.
+  - Action costs are applied when actors are re-queued.
+  - Basic monster AI (`handleMonsterTurn`) exists and integrates with the turn system.
 
 ## 4. Next Steps / Backlog
 
 _(Ordered roughly by priority/dependency)_
 
 1.  **Implement Turn-Based System with Action Costs:**
-    - [ ] Define `AITag` component (`components.go`) and add ECS methods (`ecs.go`).
-    - [ ] Modify `GameAction` interface in `turn.go` to return `(cost uint, err error)`.
-    - [ ] Update `MoveAction.Execute` in `turn.go` to return a cost (e.g., 100) and handle bump/fail cases.
-    - [ ] Update monster spawning logic (e.g., in `game.go` or map generation) to add `AITag` and add monsters to `turnQueue`.
-    - [ ] Create `handleMonsterTurn` function (`systems.go` or `ai.go`) for random movement and action cost calculation.
-    - [ ] Create `processTurnQueue` method in `model_update.go` to handle the main turn loop logic (processing monsters until player).
-    - [ ] Modify `model.Update` in `model_update.go` to call `processTurnQueue` and handle player input only when indicated.
-    - [ ] Modify `EndTurn` (or related logic) in `model_update.go` to use action cost for re-queueing the player and call `processTurnQueue` afterwards.
+    - [x] Define `AITag` component (`components.go`) and add ECS methods (`ecs.go`).
+    - [x] Modify `GameAction` interface in `turn.go` to return `(cost uint, err error)`.
+    - [x] Update `MoveAction.Execute` in `turn.go` to return a cost (e.g., 100) and handle bump/fail cases.
+    - [x] Update monster spawning logic (e.g., in `game.go` or map generation) to add `AITag` and add monsters to `turnQueue`.
+    - [x] Create `handleMonsterTurn` function (`systems.go` or `ai.go`) for random movement and action cost calculation.
+    - [x] Create `processTurnQueue` method in `model_update.go` to handle the main turn loop logic (processing monsters until player).
+    - [x] Modify `model.Update` in `model_update.go` to call `processTurnQueue` and handle player input only when indicated.
+    - [x] Modify `EndTurn` (or related logic) in `model_update.go` to use action cost for re-queueing the player and call `processTurnQueue` afterwards.
 2.  **Implement Field of View (FOV):**
     - [ ] Integrate `gruid/fov` package.
     - [ ] Add `Visible` and `Explored` tracking to `Map` struct (partially done).

@@ -14,29 +14,15 @@ import (
 // TurnQueue manages entity turns based on time using a min-heap.
 // It corresponds to the Rust TurnQueue struct.
 type TurnQueue struct {
-	// CurrentTime corresponds to current_time: u64
-	CurrentTime uint64
-
-	// turnQueue holds the actual heap data structure.
-	// We use a pointer to the slice so methods like Push/Pop can modify it.
-	// This corresponds to turn_queue: BinaryHeap<Reverse<(u64, Entity)>>
-	queue *turnHeap // Note: unexported field to encourage using methods
-
-	// OperationsSinceCleanup corresponds to operations_since_cleanup: u32
-	OperationsSinceCleanup uint32
-
-	// TotalCleanups corresponds to total_cleanups: u64
-	TotalCleanups uint64
-
-	// TotalEntitiesRemoved corresponds to total_entities_removed: u64
-	TotalEntitiesRemoved uint64
+	queue                  *turnHeap // turnQueue holds the actual heap data structure.
+	CurrentTime            uint64    // CurrentTime corresponds to current_time: u64
+	OperationsSinceCleanup uint32    // OperationsSinceCleanup corresponds to operations_since_cleanup: u32
+	TotalCleanups          uint64    // TotalCleanups corresponds to total_cleanups: u64
+	TotalEntitiesRemoved   uint64    // TotalEntitiesRemoved corresponds to total_entities_removed: u64
 }
 
 // --- Constructor and Methods ---
 
-// NewTurnQueue creates and initializes a new TurnQueue.
-// This creates a Go equivalent of Rust's BinaryHeap<Reverse<(u64, Entity)>>,
-// which is a min-heap where entries with the smallest time are processed first.
 func NewTurnQueue() *TurnQueue {
 	// Create an empty turnHeap
 	h := &turnHeap{}
@@ -62,6 +48,11 @@ func (tq *TurnQueue) Add(entityID ecs.EntityID, time uint64) {
 
 	// For debugging purposes
 	logrus.Debugf("Added entity %d to turn queue with time %d", entityID, time)
+}
+
+func (tq *TurnQueue) AddToBack(entityID ecs.EntityID, time uint64) {
+	entry := TurnEntry{Time: time, EntityID: entityID}
+	heap.PushBack(tq.queue, entry)
 }
 
 // Next removes and returns the next entity (the one with the smallest time)
@@ -291,6 +282,7 @@ func (tq *TurnQueue) CleanupDeadEntities(world *ecs.ECS) CleanupMetrics {
 
 	// Replace the queue's underlying slice with the cleaned slice
 	tq.queue = &newQueueSlice
+
 	// IMPORTANT: Re-establish the heap invariant on the new slice
 	heap.Init(tq.queue)
 

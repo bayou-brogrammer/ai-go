@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"math/rand"
 
 	"codeberg.org/anaseto/gruid"
@@ -27,68 +26,27 @@ func RenderSystem(ecs *ecs.ECS, grid gruid.Grid) {
 	}
 }
 
-// handleMonsterTurn determines and executes an action for a monster.
-// It returns the cost of the action taken.
-func handleMonsterTurn(g *Game, entityID ecs.EntityID) (cost uint, err error) {
-	logrus.Debugf("Handling monster turn for entity %d", entityID)
-
-	// Get monster position
-	_, ok := g.ecs.GetPosition(entityID)
-	if !ok {
-		return 0, fmt.Errorf("monster %d has no position", entityID)
-	}
-
-	// Simple random walk AI
-	possibleMoves := []gruid.Point{
-		{X: -1, Y: 0}, // West
-		{X: 1, Y: 0},  // East
-		{X: 0, Y: -1}, // North
-		{X: 0, Y: 1},  // South
-	}
-
-	// Shuffle directions
-	rand.Shuffle(len(possibleMoves), func(i, j int) {
-		possibleMoves[i], possibleMoves[j] = possibleMoves[j], possibleMoves[i]
-	})
-
-	// Try to find a valid move
-	for _, delta := range possibleMoves {
-		// Check bounds, walkability, and collision (using EntityBump logic implicitly)
-		moved, bumpErr := g.EntityBump(entityID, delta)
-		if bumpErr != nil {
-			// Log error but maybe try another direction?
-			logrus.Errorf("Error during monster %d bump check: %v", entityID, bumpErr)
-			continue // Try next direction
-		}
-
-		if moved {
-			// Successfully moved, return move cost (defined in MoveAction.Execute)
-			// We technically already executed the move in EntityBump, so just get the cost.
-			// Let's assume MoveAction cost is standard for now.
-			// TODO: Refactor MoveAction/EntityBump if Execute shouldn't *do* the move.
-			return 100, nil
-		}
-		// If !moved and err == nil, it means a bump occurred, try another direction.
-	}
-
-	// If no valid move found, monster waits (costs time)
-	logrus.Debugf("Skipping monster %d.", entityID) // Optional debug log
-	return 100, nil                                 // Return standard action cost for waiting
-}
-
 // processTurnQueue processes turns for actors until it's the player's turn
 // or the queue is exhausted for the current time step.
-// It returns true if the game should wait for player input, false otherwise.
 func (md *Model) processTurnQueue() {
 	g := md.game
 	logrus.Debug("========= processTurnQueue started =========")
 
-	g.turnQueue.CleanupDeadEntities(g.ecs)
+	// Periodically clean up the queue
+	metrics := g.turnQueue.CleanupDeadEntities(g.ecs)
+	if metrics.EntitiesRemoved > 10 {
+		logrus.Infof(
+			"Turn queue cleanup: removed %d entities in %v",
+			metrics.EntitiesRemoved,
+			metrics.ProcessingTime,
+		)
+	}
+
 	g.turnQueue.PrintQueue()
 
-	for i := range 100 { // Limit to 100 iterations to prevent infinite loops
+	// Process turns until we need player input or run out of actors
+	for i := 0; i < 100; i++ { // Limit iterations to prevent infinite loops
 		logrus.Debugf("Turn queue iteration %d", i)
-		logrus.Debugf("Current turn queue time: %d", g.turnQueue.CurrentTime)
 
 		// Check if the queue is empty
 		if g.turnQueue.IsEmpty() {
@@ -97,55 +55,136 @@ func (md *Model) processTurnQueue() {
 			return
 		}
 
-		// Peek at the next actor
-		entry, ok := g.turnQueue.Peek()
-		if !ok { // Should not happen if IsEmpty is false, but good practice
-			logrus.Debug("Error: Queue not empty but failed to peek.")
-			// Clear active entity
-			logrus.Debug("========= processTurnQueue ended (peek error) =========")
+		// Get the next actor's turn
+		turnEntry, ok := g.turnQueue.Next()
+		if !ok {
+			logrus.Debug("Error: Queue does not have any more actors.")
+			logrus.Debug("========= processTurnQueue ended (Next error) =========")
 			return
 		}
 
-		logrus.Debugf("Next entry in queue: EntityID=%d, Time=%d", entry.EntityID, entry.Time)
+		logrus.Debugf("Processing actor: EntityID=%d, Time=%d", turnEntry.EntityID, turnEntry.Time)
 
-		// It's time for the next actor's turn, pop them
-		actorEntry, _ := g.turnQueue.Next() // We already know ok is true from Peek
-		logrus.Debugf("Popped actor from queue: EntityID=%d, Time=%d", actorEntry.EntityID, actorEntry.Time)
+		// Get the actor's TurnActor component
+		actor, ok := g.ecs.GetTurnActor(turnEntry.EntityID)
+		if !ok {
+			logrus.Debugf("Error: Entity %d is not a valid actor.", turnEntry.EntityID)
+			continue
+		}
 
-		// Update game time to the current actor's time
-		g.turnQueue.CurrentTime = actorEntry.Time
-		logrus.Debugf("Updated game time to: %d", g.turnQueue.CurrentTime)
+		if !actor.IsAlive() {
+			logrus.Debugf("Entity %d is not alive, skipping turn.", turnEntry.EntityID)
+			continue
+		}
 
-		// Check if it's the player
-		if actorEntry.EntityID == g.PlayerID {
-			logrus.Debug("It's the player's turn.")
-			g.ecs.WaitingForInput[g.PlayerID] = true
+		isPlayer := turnEntry.EntityID == g.PlayerID
+		action := actor.NextAction()
+
+		// If it's the player's turn and they have no action queued
+		if isPlayer && action == nil {
+			g.waitingForInput = true
+			logrus.Debug("It's the player's turn, waiting for input.")
+			g.turnQueue.Add(turnEntry.EntityID, turnEntry.Time)
 			logrus.Debug("========= processTurnQueue ended (player's turn) =========")
 			return
 		}
 
-		// It's a monster's turn
-		logrus.Debugf("Handling turn for monster %d at time %d", actorEntry.EntityID, actorEntry.Time)
-		if g.ecs.HasAITag(actorEntry.EntityID) { // Ensure it's actually an AI
-			cost, err := handleMonsterTurn(g, actorEntry.EntityID)
-			if err != nil {
-				logrus.Errorf("Error during monster %d turn: %v", actorEntry.EntityID, err)
-				// Decide how to handle monster errors - skip turn? Give basic cost?
-				// For now, let's give it a standard cost and re-queue
-				cost = 100
-			}
-			// Re-queue the monster for its next turn
-			nextTime := g.turnQueue.CurrentTime + uint64(cost)
-			logrus.Debugf("Re-queuing monster %d for time %d (cost=%d)", actorEntry.EntityID, nextTime, cost)
-			g.turnQueue.Add(actorEntry.EntityID, nextTime)
-		} else {
-			// Entity in queue that isn't player or AI? Log warning.
-			logrus.Debugf("Warning: Entity %d in turn queue is not player or AI.", actorEntry.EntityID)
-			// Don't re-queue for now.
+		// If no action is available, reschedule the turn
+		if action == nil {
+			logrus.Debugf("Entity %d has no actions, rescheduling turn at time %d", turnEntry.EntityID, turnEntry.Time)
+			g.turnQueue.AddToBack(turnEntry.EntityID, turnEntry.Time)
+			continue
 		}
-		// Loop continues to process next actor in the queue at the current time
+
+		// Execute the action
+		cost, err := action.(GameAction).Execute(g)
+		if err != nil {
+			logrus.Debugf("Failed to execute action for entity %d: %v", turnEntry.EntityID, err)
+
+			// On failure, reschedule with appropriate delay
+			if isPlayer {
+				g.turnQueue.Add(turnEntry.EntityID, turnEntry.Time)
+			} else {
+				g.turnQueue.Add(turnEntry.EntityID, turnEntry.Time+100)
+			}
+			continue
+		}
+
+		logrus.Debugf("Action executed for entity %d, cost: %d", turnEntry.EntityID, cost)
+
+		// Update the game time and schedule next turn
+		g.turnQueue.CurrentTime = turnEntry.Time + uint64(cost)
+		g.turnQueue.Add(turnEntry.EntityID, g.turnQueue.CurrentTime)
 	}
 
-	// Clear active entity at the end
 	logrus.Debug("========= processTurnQueue ended (iteration limit reached) =========")
+}
+
+// monstersTurn handles AI turns for all monsters in the game.
+func (g *Game) monstersTurn() {
+	// Get all entities with AI tag and TurnActor component
+	for id := range g.ecs.AITags {
+
+		// Skip if entity doesn't have a TurnActor
+		actor, ok := g.ecs.GetTurnActor(id)
+		if !ok {
+			continue
+		}
+
+		// Skip if entity is dead
+		if !actor.IsAlive() {
+			continue
+		}
+
+		// Skip entities that already have actions queued
+		if actor.PeekNextAction() != nil {
+			continue
+		}
+
+		// Get the entity's current position
+		pos, ok := g.ecs.GetPosition(id)
+		if !ok {
+			continue
+		}
+
+		// Try different directions in a random order
+		directions := []gruid.Point{
+			{X: -1, Y: 0}, // West
+			{X: 1, Y: 0},  // East
+			{X: 0, Y: -1}, // North
+			{X: 0, Y: 1},  // South
+		}
+
+		// Shuffle the directions to add randomness
+		// This is a simple way to randomize the order of directions
+		rand.Shuffle(len(directions), func(i, j int) {
+			directions[i], directions[j] = directions[j], directions[i]
+		})
+
+		// Find a valid direction to move (one that leads to a walkable tile)
+		var validMove *gruid.Point
+		for _, dir := range directions {
+			newPos := pos.Add(dir)
+
+			// Check if the new position is valid (walkable and not occupied)
+			if g.Map.isWalkable(newPos) && len(g.ecs.EntitiesAt(newPos)) == 0 {
+				validMove = &dir
+				break
+			}
+		}
+
+		// If we found a valid direction, queue the walk action
+		if validMove != nil {
+			logrus.Debugf("AI entity %d moving in direction %v", id, validMove)
+			action := MoveAction{
+				Direction: *validMove,
+				EntityID:  id,
+			}
+			actor.AddAction(action)
+		} else {
+			// If no valid direction was found, just wait
+			logrus.Debugf("AI entity %d has no valid move, waiting", id)
+			// TODO: Add a wait action if needed
+		}
+	}
 }

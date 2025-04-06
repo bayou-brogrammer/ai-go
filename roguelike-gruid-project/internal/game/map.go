@@ -5,7 +5,6 @@ import (
 
 	"codeberg.org/anaseto/gruid"
 	"codeberg.org/anaseto/gruid/rl"
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
 	"github.com/sirupsen/logrus"
 
 	"slices"
@@ -143,17 +142,7 @@ func (m *Map) placeMonsters(g *Game, room Rect) {
 
 		// Check if the tile is walkable and not already occupied
 		if m.isWalkable(pos) && len(g.ecs.EntitiesAt(pos)) == 0 {
-			// Create Orc entity (example)
-			monsterID := g.ecs.AddEntity(struct{}{}) // Using empty struct for now
-			g.ecs.AddName(monsterID, "Orc")
-			g.ecs.AddPosition(monsterID, pos)
-			g.ecs.AddRenderable(monsterID, components.Renderable{Glyph: 'o', Color: gruid.ColorDefault}) // Example renderable (using default color for now)
-			g.ecs.AddAITag(monsterID, components.AITag{})                                                // Mark as AI-controlled
-
-			// Add to turn queue at current turn time
-			logrus.Debugf("Created monster ID=%d at position %v, adding to turn queue at time %d",
-				monsterID, pos, g.turnQueue.CurrentTime+100)
-			g.turnQueue.Add(monsterID, g.turnQueue.CurrentTime+100)
+			g.SpawnMonster(pos)
 		} else {
 			// If tile is occupied or not walkable, we just skip spawning this monster for simplicity
 			logrus.Debugf("Failed to spawn monster at position %v - not walkable or occupied", pos)

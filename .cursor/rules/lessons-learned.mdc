@@ -62,4 +62,14 @@ This file serves as a learning journal for the project, capturing important patt
         4. Consider terminal color limitations
     *   **Date:** 2025-04-03
 
+*   **Pattern:** Turn Queue Management with Priority Queue
+    *   **Context:** Implementing the turn-based system (`turn.go`, `model_update.go`).
+    *   **Reasoning:** Using `container/heap` as a priority queue (`TurnQueue`) allows efficient management of actor turns based on their scheduled time. Actors are added with a future time, and the queue always provides the actor with the earliest scheduled turn. This is fundamental for energy cost / speed-based turn systems.
+    *   **Date:** 2025-04-05
+
+*   **Pattern:** Action Cost System via Interface
+    *   **Context:** Implementing the turn-based system (`turn.go`, `actions.go`).
+    *   **Reasoning:** Defining a `GameAction` interface with an `Execute` method that returns an action `cost` (time units) provides a flexible way to handle variable turn durations. Different actions (moving, attacking, waiting) can consume different amounts of time, which is then used to calculate the actor's next scheduled turn time when re-adding them to the `TurnQueue`.
+    *   **Date:** 2025-04-05
+
 ---

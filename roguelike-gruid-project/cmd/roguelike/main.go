@@ -6,9 +6,6 @@ package main
 import (
 	"context"
 	"math/rand"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"codeberg.org/anaseto/gruid"
@@ -33,16 +30,13 @@ func main() {
 
 	// Seed random number generator
 	seed := time.Now().UnixNano()
-	logrus.Debugf("Initializing random number generator with seed: %d", seed)
 	rand.New(rand.NewSource(seed))
 
 	// Create game grid
 	gd := gruid.NewGrid(game.Width, game.Height)
-	logrus.Debugf("Created game grid with dimensions %dx%d", game.Width, game.Height)
 
 	// Create game model
 	m := game.NewModel(gd)
-	logrus.Debug("Game model initialized")
 
 	// Get driver and initialize app
 	driver := ui.GetDriver()
@@ -50,23 +44,11 @@ func main() {
 		Model:  m,
 		Driver: driver,
 	})
-	logrus.Debug("Game app created with driver")
 
 	// Start application
 	logrus.Info("Starting game loop")
 	if err := app.Start(context.Background()); err != nil {
 		driver.Close()
 		logrus.Fatal(err)
-	}
-}
-
-func subSig(ctx context.Context, msgs chan<- gruid.Msg) {
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	defer signal.Stop(sig)
-	select {
-	case <-ctx.Done():
-	case <-sig:
-		msgs <- gruid.MsgQuit{}
 	}
 }

@@ -4,13 +4,8 @@ import (
 	"math/rand"
 	"time"
 
-	"codeberg.org/anaseto/gruid"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/turn"
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ui"
-	"github.com/sirupsen/logrus"
-
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
+	turn "github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/turn_queue"
 )
 
 // Game settings & map generation constants
@@ -28,7 +23,8 @@ const (
 
 // Game represents the main game state.
 type Game struct {
-	Depth int
+	Depth           int
+	waitingForInput bool
 
 	Map       *Map
 	ecs       *ecs.ECS        // The Entity-Component-System manager
@@ -54,22 +50,5 @@ func (g *Game) InitLevel() {
 
 	g.Map = NewMap(Width, Height)
 	playerStart := g.Map.generateMap(g, Width, Height) // Pass game struct
-	g.InitPlayer(playerStart)
-}
-
-func (g *Game) InitPlayer(playerStart gruid.Point) {
-	// Create the player entity
-	playerID := g.ecs.AddEntity(components.PlayerTag{})
-	g.PlayerID = playerID // Store the player ID in the game struct
-
-	logrus.Debugf("Player ID: %d\n", playerID)
-
-	// Add components to the player
-	// Use the start position returned by NewMap
-	g.ecs.AddPosition(playerID, playerStart)
-	g.ecs.AddRenderable(playerID, components.Renderable{Glyph: '@', Color: ui.ColorPlayer})
-
-	// Add the player to the turn queue
-	g.turnQueue.Add(playerID, g.turnQueue.CurrentTime)
-
+	g.SpawnPlayer(playerStart)
 }

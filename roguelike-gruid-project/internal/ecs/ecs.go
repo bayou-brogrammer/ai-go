@@ -19,25 +19,24 @@ type ECS struct {
 	nextEntityID EntityID
 	mu           sync.RWMutex // To handle concurrent access
 
-	WaitingForInput map[EntityID]bool // entity ID: waiting for input
-
 	Entities    map[EntityID]Entity      // set of entities
 	Positions   map[EntityID]gruid.Point // entity ID: map position
 	Renderables map[EntityID]Renderable  // entity ID: map renderable
 	Names       map[EntityID]string      // entity ID: map name
 	AITags      map[EntityID]AITag       // entity ID: presence of AI tag
+	TurnActors  map[EntityID]TurnActor   // entity ID: presence of TurnActor
 }
 
 // NewECS creates and initializes a new ECS.
 func NewECS() *ECS {
 	return &ECS{
-		nextEntityID:    1, // Start IDs from 1
-		Entities:        make(map[EntityID]Entity),
-		Positions:       make(map[EntityID]gruid.Point),
-		Renderables:     make(map[EntityID]Renderable),
-		Names:           make(map[EntityID]string),
-		AITags:          make(map[EntityID]AITag), // Initialize AITags map
-		WaitingForInput: make(map[EntityID]bool),
+		nextEntityID: 1, // Start IDs from 1
+		Entities:     make(map[EntityID]Entity),
+		Positions:    make(map[EntityID]gruid.Point),
+		Renderables:  make(map[EntityID]Renderable),
+		Names:        make(map[EntityID]string),
+		AITags:       make(map[EntityID]AITag),
+		TurnActors:   make(map[EntityID]TurnActor),
 	}
 }
 
@@ -152,15 +151,26 @@ func (ecs *ECS) AddName(id EntityID, name string) *ECS {
 	return ecs
 }
 
-// AddAITag adds the AITag component to an entity.
-func (ecs *ECS) AddAITag(id EntityID, tag AITag) *ECS {
+func (ecs *ECS) AddAITag(id EntityID) *ECS {
 	ecs.mu.Lock()
 	defer ecs.mu.Unlock()
 	if !ecs.entityExistsUnlocked(id) {
 		logrus.Debugf("Warning: Attempted to add AITag to non-existent entity %d\n", id)
 		return ecs
 	}
-	ecs.AITags[id] = tag
+	ecs.AITags[id] = AITag{}
+	return ecs
+}
+
+func (ecs *ECS) AddTurnActor(id EntityID, actor TurnActor) *ECS {
+	ecs.mu.Lock()
+	defer ecs.mu.Unlock()
+	if !ecs.entityExistsUnlocked(id) {
+		logrus.Debugf("Warning: Attempted to add TurnActor to non-existent entity %d\n", id)
+		return ecs
+	}
+
+	ecs.TurnActors[id] = actor
 	return ecs
 }
 
@@ -190,11 +200,22 @@ func (ecs *ECS) GetName(id EntityID) (string, bool) {
 	return name, ok
 }
 
+func (ecs *ECS) GetTurnActor(id EntityID) (TurnActor, bool) {
+	ecs.mu.RLock()
+	defer ecs.mu.RUnlock()
+	actor, ok := ecs.TurnActors[id]
+	return actor, ok
+}
+
+func (ecs *ECS) GetTurnActorUnchecked(id EntityID) TurnActor {
+	actor, _ := ecs.TurnActors[id]
+	return actor
+}
+
 // HasAITag checks if an entity has the AITag component.
 func (ecs *ECS) HasAITag(id EntityID) bool {
 	ecs.mu.RLock()
 	defer ecs.mu.RUnlock()
-
 	_, ok := ecs.AITags[id]
 	return ok
 }
@@ -215,6 +236,7 @@ func (ecs *ECS) MoveEntity(id EntityID, p gruid.Point) error {
 	if !ecs.entityExistsUnlocked(id) {
 		return fmt.Errorf("entity %d not found", id)
 	}
+
 	if _, ok := ecs.Positions[id]; !ok {
 		// This case should ideally not happen if AddPosition checks existence
 		return fmt.Errorf("entity %d exists but has no Position component", id)

@@ -34,8 +34,8 @@ func (t *TileDrawer) GetImage(c gruid.Cell) image.Image {
 	switch c.Style.Fg {
 	case ColorPlayer:
 		fg = image.NewUniform(color.RGBA{0x46, 0x95, 0xf7, 255}) // Blue for player
-	case ColorFlashingEnemy:
-		fg = image.NewUniform(color.RGBA{0xfa, 0xb7, 0x38, 255}) // Bright yellow for flashing enemies
+	case ColorMonster:
+		fg = image.NewUniform(color.RGBA{0xfa, 0xb7, 0x38, 255}) // Yellow for monster
 	}
 
 	switch c.Style.Bg {
