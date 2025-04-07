@@ -6,7 +6,6 @@ package ui
 import (
 	"fmt"
 	"image"
-	"image/color"
 
 	"golang.org/x/image/font/gofont/gomono"
 	"golang.org/x/image/font/opentype"
@@ -26,38 +25,21 @@ type TileDrawer struct {
 
 // GetImage implements TileManager.GetImage.
 func (t *TileDrawer) GetImage(c gruid.Cell) image.Image {
-	// We use some colors from https://github.com/jan-warchol/selenized,
-	// using the palette variant with dark backgound and light foreground.
-	fg := image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255})
-	bg := image.NewUniform(color.RGBA{0x10, 0x3c, 0x48, 255})
+	// Default colors for SDL/JS
+	// fg := image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255}) // Light gray
+	// bg := image.NewUniform(color.RGBA{0x10, 0x3c, 0x48, 255}) // Dark blue-gray
 
-	// We define non default-colors (for FOV, ...).
-	switch c.Style.Fg {
-	case ColorPlayer:
-		fg = image.NewUniform(color.RGBA{0x46, 0x95, 0xf7, 255}) // Blue for player
-	case ColorMonster:
-		fg = image.NewUniform(color.RGBA{0xfa, 0xb7, 0x38, 255}) // Yellow for monster
-	case ColorVisibleFloor:
-		fg = image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255}) // White for visible floor #ADBCBC
-	case ColorVisibleWall:
-		fg = image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255}) // White for visible wall #ADBCBC
-	case ColorExploredFloor:
-		fg = image.NewUniform(color.RGBA{0x20, 0x20, 0x20, 255}) // Very dark gray for explored floor #202020
-	case ColorExploredWall:
-		fg = image.NewUniform(color.RGBA{0x20, 0x20, 0x20, 255}) // Very dark gray for explored wall #202020
-	}
+	fgColor := ColorToRGBA(c.Style.Fg, true)
+	bgColor := ColorToRGBA(c.Style.Bg, false)
 
-	switch c.Style.Bg {
-	case ColorDark:
-		bg = image.NewUniform(color.RGBA{0x18, 0x49, 0x56, 255})
-	}
-
+	// Handle style attributes
 	if c.Style.Attrs&AttrReverse != 0 {
-		fg, bg = bg, fg
+		fgColor, bgColor = bgColor, fgColor
 	}
+
 	// We return an image with the given rune drawn using the previously
 	// defined foreground and background colors.
-	return t.drawer.Draw(c.Rune, fg, bg)
+	return t.drawer.Draw(c.Rune, image.NewUniform(fgColor), image.NewUniform(bgColor))
 }
 
 // TileSize implements TileManager.TileSize. It returns the tile size, in

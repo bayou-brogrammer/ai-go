@@ -34,6 +34,8 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 
 	var rune rune
 	var speed uint64
+	var color gruid.Color = ui.ColorMonster // Default monster color
+
 	switch monsterName {
 	case "Orc":
 		rune = 'o'
@@ -42,16 +44,17 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 		rune = 'T'
 		speed = 200
 	case "Goblin":
-		rune = 'G'
+		rune = 'g'
 		speed = 100
+		color = ui.ColorSleepingMonster // Goblins use a different color
 	case "Kobold":
-		rune = 'K'
+		rune = 'k'
 		speed = 150
 	}
 
 	g.ecs.AddName(monsterID, monsterName).
 		AddPosition(monsterID, pos).
-		AddRenderable(monsterID, components.Renderable{Glyph: rune, Color: ui.ColorMonster}).
+		AddRenderable(monsterID, components.Renderable{Glyph: rune, Color: color}).
 		AddTurnActor(monsterID, components.NewTurnActor(speed)).
 		AddAITag(monsterID).
 		AddFOV(monsterID, components.NewFOVComponent(6, g.Map.Width, g.Map.Height)) // Use correct constructor

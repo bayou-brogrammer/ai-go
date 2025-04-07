@@ -35,20 +35,15 @@ func (md *Model) Draw() gruid.Grid {
 		}
 
 		isVisible := playerFOVComp.IsVisible(p, g.Map.Width)
+		isWall := g.Map.IsWall(p)
 
-		if !isVisible {
-			// Explored but not visible: Draw in a faded color
-			md.grid.Set(p, gruid.Cell{
-				Rune:  g.Map.Rune(it.Cell()),
-				Style: gruid.Style{Fg: ui.ColorExploredWall, Bg: ui.ColorExploredFloor}, // Use faded colors
-			})
-		} else {
-			// Currently visible: Draw normally
-			md.grid.Set(p, gruid.Cell{
-				Rune:  g.Map.Rune(it.Cell()),
-				Style: gruid.Style{Fg: ui.ColorVisibleWall, Bg: ui.ColorVisibleFloor}, // Use bright colors
-			})
-		}
+		// Use the new helper function to get the appropriate style
+		style := ui.GetMapStyle(isWall, isVisible, isExplored)
+
+		md.grid.Set(p, gruid.Cell{
+			Rune:  g.Map.Rune(it.Cell()),
+			Style: style,
+		})
 	}
 
 	// Render entities using the ECS RenderSystem, passing player FOV if available

@@ -1,16 +1,21 @@
-# Active Context: Go Roguelike with Gruid (As of 2025-04-05)
+# Active Context: Go Roguelike with Gruid (As of 2025-04-06)
 
 ## Current Focus
 
-- **Implement Field of View (FOV):** (Next major task - see `tasks/tasks_plan.md`)
-  - Integrate `gruid/fov` package.
-  - Add `Visible` and `Explored` tracking to `Map` struct.
-  - Implement `ComputeFOV` function.
-  - Call `ComputeFOV` when player moves/acts.
-  - Modify rendering to respect FOV.
+- **Implement Basic Combat System:**
+  - Define combat-related components (`Health`, `CombatStats`)
+  - Create an `AttackAction`
+  - Implement combat resolution logic
+  - Handle player attacking monsters and vice versa
 
 ## Recent Changes / Activity
 
+- Implemented comprehensive color system:
+  - Created base palette and semantic color mapping in `ui/color.go`
+  - Added support for different entity colors and states
+  - Updated renderer to use the color system in both terminal and SDL/JS modes
+  - Added support for explored-but-not-visible tile coloring
+- Completed Field of View (FOV) implementation task
 - Created `docs/product_requirement_docs.md`.
 - Created `docs/architecture.md`.
 - Created `docs/technical.md`.
@@ -35,18 +40,20 @@
 - Basic map generation with rooms/corridors is implemented.
 - Player starts in the center of the first room.
 - Player can move around using arrow keys with wall collision detection.
-- **Turn-based system with action costs is functional.** Actors take turns based on a priority queue (`TurnQueue`), and actions have associated time costs. Basic monster AI exists.
-- Project lacks FOV, refined colors, advanced monster AI, and combat.
+- Turn-based system with action costs is functional. Actors take turns based on a priority queue (`TurnQueue`), and actions have associated time costs. Basic monster AI exists.
+- **Field of View (FOV) is now implemented.** Player can only see tiles and entities within their field of view. Tiles outside FOV but previously seen appear dimmed.
+- **Comprehensive color system is implemented.** Colors are now defined semantically and mapped to appropriate terminal/SDL colors.
+- Project lacks combat, advanced monster AI, and UI elements.
 - Core documentation files are being updated to reflect the current state.
 
 ## Next Steps (Immediate)
 
-1.  **Implement Field of View (FOV):** (See `tasks/tasks_plan.md` for details)
-    - Integrate `gruid/fov`.
-    - Update `Map` struct.
-    - Implement `ComputeFOV`.
-    - Update rendering logic.
-2.  **Refine Colors:**
-    - Define color constants.
-    - Update rendering to use constants.
-    - Consider explored-but-not-visible color.
+1. **Implement Basic Combat:**
+   - Define combat-related components (e.g., `Health`, `CombatStats`).
+   - Implement `AttackAction` for bumping into monsters.
+   - Create damage calculation logic.
+   - Handle entity death.
+2. **Add Game UI:**
+   - Create message log for combat and game events.
+   - Add player stats display.
+   - Add health indicators.

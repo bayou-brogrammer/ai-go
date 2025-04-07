@@ -64,32 +64,37 @@ _(Ordered roughly by priority/dependency)_
     - [x] Modify `model.Update` in `model_update.go` to call `processTurnQueue` and handle player input only when indicated.
     - [x] Modify `EndTurn` (or related logic) in `model_update.go` to use action cost for re-queueing the player and call `processTurnQueue` afterwards.
 2.  **Implement Field of View (FOV):**
-    - [ ] Integrate `gruid/fov` package.
-    - [ ] Add `Visible` and `Explored` tracking to `Map` struct (partially done).
-    - [ ] Implement `ComputeFOV` function (likely in `map.go` or `fov.go`).
-    - [ ] Call `ComputeFOV` when player moves/acts.
-    - [ ] Modify `DrawMap` and `RenderSystem` to only draw visible/explored tiles/entities based on `Map.Visible` and `Map.Explored`.
-2. **Refine Colors:**
-   - Define color constants (e.g., in `color.go`).
-   - Update `DrawMap` and `RenderSystem` (and player creation) to use defined colors instead of `gruid.ColorDefault`.
-   - [ ] Consider different colors for explored-but-not-visible tiles.
-   4.  **Add Basic Monsters (Initial setup done in Turn System task):**
-       - [ ] Define other monster components (e.g., `Health`, `CombatStats`).
-       - [ ] Refine monster spawning locations/types.
-       - [ ] Update `RenderSystem` to draw monsters correctly (if not already covered).
-5.  **Implement Basic Combat:**
-    - [ ] Define combat-related components/events (e.g., `AttackAction`, `Health`, `CombatStats`).
-    - [ ] Implement `CombatSystem` or integrate logic into action handlers.
-    - [ ] Handle player attacking monsters and vice-versa within the turn system.
-6.  **Game UI:**
-    - [ ] Message log.
-    - [ ] Player stats display.
+    - [x] Integrate `gruid/fov` package.
+    - [x] Add `Visible` and `Explored` tracking to `Map` struct (partially done).
+    - [x] Implement `ComputeFOV` function (likely in `map.go` or `fov.go`).
+    - [x] Call `ComputeFOV` when player moves/acts.
+    - [x] Modify `DrawMap` and `RenderSystem` to only draw visible/explored tiles/entities based on `Map.Visible` and `Map.Explored`.
+3. **Refine Colors:**
+   - [x] Define color constants (in `ui/color.go`).
+   - [x] Update `DrawMap` and `RenderSystem` to use defined colors.
+   - [x] Add different colors for explored-but-not-visible tiles.
+   - [x] Implement color support for different monster types.
+   - [x] Create coherent color palette with semantic naming.
+4.  **Implement Basic Combat:**
+   - [ ] Define combat-related components (e.g., `Health`, `CombatStats`).
+   - [ ] Implement `AttackAction` for bumping into monsters.
+   - [ ] Create damage calculation logic.
+   - [ ] Handle entity death.
+5.  **Add Game UI:**
+   - [ ] Create message log for combat and game events.
+   - [ ] Add player stats display.
+   - [ ] Add health indicators.
+6.  **Enhance Monster System:**
+   - [ ] Define other monster components (e.g., `Health`, `CombatStats`).
+   - [ ] Refine monster spawning locations/types with varying stats.
+   - [ ] Improve AI behavior beyond random movement.
 
 ## 5. Known Issues / TODOs
 
-- FOV not implemented.
-- Colors are placeholders.
+- ~FOV not implemented.~
+- ~Colors are placeholders.~
 - Monster AI is very basic (random movement).
 - No combat implemented.
+- No UI elements for feedback.
 - `driver` variable in `main.go` likely needs proper initialization.
 - Missing unit tests.
