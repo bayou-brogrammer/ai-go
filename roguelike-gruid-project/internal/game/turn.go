@@ -1,10 +1,10 @@
 package game
 
 import (
-	"codeberg.org/anaseto/gruid"
 	"fmt"
 
 	"codeberg.org/anaseto/gruid"
+
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
 	"github.com/sirupsen/logrus" // Added for logging
 )
@@ -12,6 +12,14 @@ import (
 // GameAction is an interface for actions that can be performed in the game.
 type GameAction interface {
 	Execute(g *Game) (cost uint, err error)
+}
+
+type WaitAction struct {
+	EntityID ecs.EntityID
+}
+
+func (a WaitAction) Execute(g *Game) (cost uint, err error) {
+	return 100, nil // Standard wait cost
 }
 
 type MoveAction struct {

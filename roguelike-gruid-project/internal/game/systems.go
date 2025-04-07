@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"math/rand"
 
 	"codeberg.org/anaseto/gruid"
@@ -195,50 +196,65 @@ func (g *Game) monstersTurn() {
 			continue
 		}
 
-		// Get the entity's current position
-		pos, ok := g.ecs.GetPosition(id)
-		if !ok {
-			continue
-		}
-
-		// Try different directions in a random order
-		directions := []gruid.Point{
-			{X: -1, Y: 0}, // West
-			{X: 1, Y: 0},  // East
-			{X: 0, Y: -1}, // North
-			{X: 0, Y: 1},  // South
-		}
-
-		// Shuffle the directions to add randomness
-		// This is a simple way to randomize the order of directions
-		rand.Shuffle(len(directions), func(i, j int) {
-			directions[i], directions[j] = directions[j], directions[i]
-		})
-
-		// Find a valid direction to move (one that leads to a walkable tile)
-		var validMove *gruid.Point
-		for _, dir := range directions {
-			newPos := pos.Add(dir)
-
-			// Check if the new position is valid (walkable and not occupied)
-			if g.Map.isWalkable(newPos) && len(g.ecs.EntitiesAt(newPos)) == 0 {
-				validMove = &dir
-				break
-			}
-		}
-
-		// If we found a valid direction, queue the walk action
-		if validMove != nil {
-			logrus.Debugf("AI entity %d moving in direction %v", id, validMove)
-			action := MoveAction{
-				Direction: *validMove,
-				EntityID:  id,
+		moveOrWait := rand.Intn(2)
+		if moveOrWait == 0 {
+			// Move
+			action, err := moveMonster(g, id)
+			if err != nil {
+				logrus.Debugf("Failed to move monster %d: %v", id, err)
+				continue
 			}
 			actor.AddAction(action)
 		} else {
-			// If no valid direction was found, just wait
-			logrus.Debugf("AI entity %d has no valid move, waiting", id)
-			// TODO: Add a wait action if needed
+			actor.AddAction(WaitAction{EntityID: id})
 		}
+	}
+}
+
+func moveMonster(g *Game, id ecs.EntityID) (GameAction, error) {
+	// Get the entity's current position
+	pos, ok := g.ecs.GetPosition(id)
+	if !ok {
+		return nil, fmt.Errorf("entity %d has no position", id)
+	}
+
+	// Try different directions in a random order
+	directions := []gruid.Point{
+		{X: -1, Y: 0}, // West
+		{X: 1, Y: 0},  // East
+		{X: 0, Y: -1}, // North
+		{X: 0, Y: 1},  // South
+	}
+
+	// Shuffle the directions to add randomness
+	// This is a simple way to randomize the order of directions
+	rand.Shuffle(len(directions), func(i, j int) {
+		directions[i], directions[j] = directions[j], directions[i]
+	})
+
+	// Find a valid direction to move (one that leads to a walkable tile)
+	var validMove *gruid.Point
+	for _, dir := range directions {
+		newPos := pos.Add(dir)
+
+		// Check if the new position is valid (walkable and not occupied)
+		if g.Map.isWalkable(newPos) && len(g.ecs.EntitiesAt(newPos)) == 0 {
+			validMove = &dir
+			break
+		}
+	}
+
+	// If we found a valid direction, queue the walk action
+	if validMove != nil {
+		logrus.Debugf("AI entity %d moving in direction %v", id, validMove)
+		action := MoveAction{
+			Direction: *validMove,
+			EntityID:  id,
+		}
+		return action, nil
+	} else {
+		// If no valid direction was found, just wait
+		logrus.Debugf("AI entity %d has no valid move, waiting", id)
+		return WaitAction{EntityID: id}, nil
 	}
 }
