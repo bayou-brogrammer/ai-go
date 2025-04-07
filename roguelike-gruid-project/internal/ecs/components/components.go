@@ -19,3 +19,9 @@ type Renderable struct {
 	Glyph rune
 	Color gruid.Color
 }
+
+// Health component represents an entity's health points
+type Health struct {
+	CurrentHP int
+	MaxHP     int
+}

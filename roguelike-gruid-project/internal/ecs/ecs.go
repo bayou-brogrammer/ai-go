@@ -26,6 +26,7 @@ type ECS struct {
 	AITags      map[EntityID]AITag       // entity ID: presence of AI tag
 	TurnActors  map[EntityID]TurnActor   // entity ID: presence of TurnActor
 	FOVs        map[EntityID]*FOV        // entity ID: FOV
+	Healths     map[EntityID]Health      // entity ID: Health
 }
 
 // NewECS creates and initializes a new ECS.
@@ -39,6 +40,7 @@ func NewECS() *ECS {
 		AITags:       make(map[EntityID]AITag),
 		TurnActors:   make(map[EntityID]TurnActor),
 		FOVs:         make(map[EntityID]*FOV),
+		Healths:      make(map[EntityID]Health),
 	}
 }
 
@@ -71,6 +73,9 @@ func (ecs *ECS) DestroyEntity(id EntityID) {
 	delete(ecs.Renderables, id)
 	delete(ecs.Names, id)
 	delete(ecs.AITags, id) // Remove AI tag as well
+	delete(ecs.TurnActors, id)
+	delete(ecs.FOVs, id)
+	delete(ecs.Healths, id)
 }
 
 // EntitiesAt returns a slice of EntityIDs located at the given point.
@@ -207,6 +212,17 @@ func (ecs *ECS) AddFOV(id EntityID, fov *FOV) *ECS {
 	return ecs
 }
 
+func (ecs *ECS) AddHealth(id EntityID, health Health) *ECS {
+	ecs.mu.Lock()
+	defer ecs.mu.Unlock()
+	if !ecs.entityExistsUnlocked(id) {
+		logrus.Debugf("Warning: Attempted to add Health to non-existent entity %d\n", id)
+		return ecs
+	}
+	ecs.Healths[id] = health
+	return ecs
+}
+
 // --- Getters ---
 
 // GetPosition retrieves the Position component for an entity.
@@ -249,6 +265,14 @@ func (ecs *ECS) GetFOV(id EntityID) (*FOV, bool) {
 	defer ecs.mu.RUnlock()
 	fov, ok := ecs.FOVs[id]
 	return fov, ok
+}
+
+// GetHealth retrieves the Health component for an entity.
+func (ecs *ECS) GetHealth(id EntityID) (Health, bool) {
+	ecs.mu.RLock()
+	defer ecs.mu.RUnlock()
+	health, ok := ecs.Healths[id]
+	return health, ok
 }
 
 // HasAITag checks if an entity has the AITag component.

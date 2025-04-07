@@ -56,6 +56,7 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 		AddPosition(monsterID, pos).
 		AddRenderable(monsterID, components.Renderable{Glyph: rune, Color: color}).
 		AddTurnActor(monsterID, components.NewTurnActor(speed)).
+		AddHealth(monsterID, components.Health{CurrentHP: maxHP, MaxHP: maxHP}). // Add Health component
 		AddAITag(monsterID).
 		AddFOV(monsterID, components.NewFOVComponent(6, g.Map.Width, g.Map.Height)) // Use correct constructor
 

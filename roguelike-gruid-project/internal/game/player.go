@@ -5,6 +5,7 @@ import (
 
 	"codeberg.org/anaseto/gruid"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
+	"github.com/sirupsen/logrus" // Added for logging
 )
 
 // checkCollision checks if a given position is a valid move
@@ -48,12 +49,37 @@ func (g *Game) EntityBump(entityID ecs.EntityID, delta gruid.Point) (moved bool,
 	}
 
 	// Check for collision with other entities at the target position
-	// TODO: Refine collision check to potentially allow swapping or attacking
 	for _, otherID := range g.ecs.EntitiesAt(newPos) {
-		if otherID != entityID { // Don't collide with self
-			// For now, any other entity blocks movement
-			// TODO: Implement attack logic here if the other entity is hostile
-			return false, nil // Bumped into another entity
+		if otherID == entityID {
+			continue // Don't interact with self
+		}
+
+		// Check if the target entity has health (i.e., is attackable)
+		if _, ok := g.ecs.GetHealth(otherID); ok {
+			// Target is attackable. Queue an AttackAction for the bumping entity.
+			logrus.Debugf("Entity %d bumping into attackable entity %d. Queuing AttackAction.", entityID, otherID)
+
+			// Get the TurnActor component of the bumping entity to queue the action
+			actor, actorOk := g.ecs.GetTurnActor(entityID)
+			if !actorOk {
+				// This should not happen if the entity bumping can take turns
+				return false, fmt.Errorf("entity %d cannot perform actions (missing TurnActor)", entityID)
+			}
+
+			// Create and queue the attack action
+			attackAction := AttackAction{
+				AttackerID: entityID,
+				TargetID:   otherID,
+			}
+			actor.AddAction(attackAction) // Add action to the actor's queue
+
+			// Return moved=false because the bump resulted in an attack, not movement.
+			// The turn cost will be handled by the AttackAction itself when executed.
+			return false, nil
+		} else {
+			// Bumped into a non-attackable entity (e.g., another player, item, scenery)
+			logrus.Debugf("Entity %d bumped into non-attackable entity %d.", entityID, otherID)
+			return false, nil // Block movement
 		}
 	}
 
