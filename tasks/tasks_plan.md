@@ -49,6 +49,20 @@ Create a basic, playable roguelike game in the terminal using Go and `gruid`, fe
   - Player input is handled correctly within the turn structure.
   - Action costs are applied when actors are re-queued.
   - Basic monster AI (`handleMonsterTurn`) exists and integrates with the turn system.
+- **Field of View (FOV) is implemented:**
+  - Uses `gruid/fov` package for FOV calculations.
+  - Map tracks visible and explored tiles using efficient bitsets.
+  - Rendering only shows visible and explored areas with appropriate colors.
+  - FOV is updated when player moves.
+- **Comprehensive color system is implemented:**
+  - Semantic color definitions in `ui/color.go`.
+  - Different colors for entities, map features, and UI elements.
+  - Support for different rendering modes (terminal, SDL/JS).
+  - Special colors for different monster types and states.
+- **Basic combat system is being implemented:**
+  - `Health` component added to track entity health.
+  - `AttackAction` implemented for basic combat.
+  - Bump-to-attack mechanic working for player and monsters.
 
 ## 4. Next Steps / Backlog
 
@@ -76,25 +90,25 @@ _(Ordered roughly by priority/dependency)_
    - [x] Implement color support for different monster types.
    - [x] Create coherent color palette with semantic naming.
 4.  **Implement Basic Combat:**
-   - [ ] Define combat-related components (e.g., `Health`, `CombatStats`).
-   - [ ] Implement `AttackAction` for bumping into monsters.
-   - [ ] Create damage calculation logic.
+   - [x] Define combat-related components (e.g., `Health`, `CombatStats`).
+   - [x] Implement `AttackAction` for bumping into monsters.
+   - [x] Create damage calculation logic (basic implementation).
    - [ ] Handle entity death.
 5.  **Add Game UI:**
    - [ ] Create message log for combat and game events.
    - [ ] Add player stats display.
    - [ ] Add health indicators.
 6.  **Enhance Monster System:**
-   - [ ] Define other monster components (e.g., `Health`, `CombatStats`).
-   - [ ] Refine monster spawning locations/types with varying stats.
+   - [x] Define other monster components (e.g., `Health`, `CombatStats`).
+   - [x] Refine monster spawning locations/types with varying stats.
    - [ ] Improve AI behavior beyond random movement.
 
 ## 5. Known Issues / TODOs
 
-- ~FOV not implemented.~
-- ~Colors are placeholders.~
+- ~FOV not implemented.~ ✓
+- ~Colors are placeholders.~ ✓
 - Monster AI is very basic (random movement).
-- No combat implemented.
+- ~No combat implemented.~ ✓ (Basic implementation complete, needs death handling)
 - No UI elements for feedback.
 - `driver` variable in `main.go` likely needs proper initialization.
 - Missing unit tests.
