@@ -35,21 +35,26 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 	var rune rune
 	var speed uint64
 	var color gruid.Color = ui.ColorMonster // Default monster color
+	var maxHP int
 
 	switch monsterName {
 	case "Orc":
 		rune = 'o'
 		speed = 100
+		maxHP = 10
 	case "Troll":
 		rune = 'T'
 		speed = 200
+		maxHP = 16
 	case "Goblin":
 		rune = 'g'
 		speed = 100
 		color = ui.ColorSleepingMonster // Goblins use a different color
+		maxHP = 8
 	case "Kobold":
 		rune = 'k'
 		speed = 150
+		maxHP = 6
 	}
 
 	g.ecs.AddName(monsterID, monsterName).
