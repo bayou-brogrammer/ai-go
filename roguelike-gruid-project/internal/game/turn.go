@@ -8,7 +8,7 @@ import (
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ui"
-	"github.com/sirupsen/logrus" // Added for logging
+	"github.com/sirupsen/logrus"
 )
 
 // GameAction is an interface for actions that can be performed in the game.
@@ -91,25 +91,41 @@ func (a AttackAction) Execute(g *Game) (cost uint, err error) {
 	return 100, nil // Standard attack cost
 }
 
-// Add this new method to Game to handle entity death
+// handleEntityDeath handles an entity's death, either removing it completely
+// or turning it into a corpse (the preferred option)
 func (g *Game) handleEntityDeath(entityID ecs.EntityID, entityName string) {
+	// Log the death event
 	g.Log.AddMessagef(ui.ColorDeath, "%s dies!", entityName)
 	logrus.Infof("Entity %s (%d) has died.", entityName, entityID)
 
-	// Option 1: Remove entity completely
-	// g.ecs.RemoveEntity(entityID)
+	// Check if this is the player
+	if entityID == g.PlayerID {
+		// Handle player death specially (could trigger game over screen later)
+		g.Log.AddMessagef(ui.ColorCritical, "You died! Game over!")
+		logrus.Info("Player has died. Game over!")
+		// TODO: Implement game over state
+		return
+	}
 
-	// Option 2: Turn into a corpse (preferred as per your feedback)
-	// Remove components that make it active
-	g.ecs.RemoveComponents(entityID, components.CTurnActor, components.CAITag)
+	// Turn entity into a corpse
+	// 1. Remove components that make it active or interactive
+	g.ecs.RemoveComponents(entityID,
+		components.CTurnActor,      // Remove from turn system
+		components.CAITag,          // Remove AI behavior
+		components.CBlocksMovement, // Allow walking over corpses
+	)
 
-	// Change appearance to a corpse
-	g.ecs.AddComponents(entityID, components.CRenderable, components.Renderable{
-		Glyph: '%',
-		Color: ui.ColorCorpse,
-	}, components.CorpseTag{})
+	// 2. Change appearance to a corpse
+	g.ecs.AddComponents(entityID,
+		components.Renderable{Glyph: '%', Color: ui.ColorCorpse},
+		components.CorpseTag{},
+		components.DeadTag{},
+	)
 
-	// Remove from turn queue if it's there
-	// This depends on how your turn queue is structured
-	// g.turnQueue.Remove(entityID) // If your queue allows removal by entity ID
+	// 3. Remove from turn queue
+	// The queue's Remove method handles finding and removing by entity ID
+	g.turnQueue.Remove(entityID)
+
+	// 4. Optional: add decomposition logic or timer for corpse cleanup
+	// TODO: Implement corpse decay system if desired
 }

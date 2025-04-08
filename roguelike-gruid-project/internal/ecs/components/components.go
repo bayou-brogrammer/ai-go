@@ -11,27 +11,29 @@ type ComponentType string
 
 // Component type constants
 const (
-	CPlayerTag  ComponentType = "PlayerTag"
-	CPosition   ComponentType = "Position"
-	CRenderable ComponentType = "Renderable"
-	CName       ComponentType = "Name"
-	CAITag      ComponentType = "AITag"
-	CTurnActor  ComponentType = "TurnActor"
-	CFOV        ComponentType = "FOV"
-	CHealth     ComponentType = "Health"
-	CCorpseTag  ComponentType = "CorpseTag"
+	CAITag          ComponentType = "AITag"
+	CBlocksMovement ComponentType = "BlocksMovement"
+	CCorpseTag      ComponentType = "CorpseTag"
+	CFOV            ComponentType = "FOV"
+	CHealth         ComponentType = "Health"
+	CName           ComponentType = "Name"
+	CPlayerTag      ComponentType = "PlayerTag"
+	CPosition       ComponentType = "Position"
+	CRenderable     ComponentType = "Renderable"
+	CTurnActor      ComponentType = "TurnActor"
 )
 
 var TypeToComponent = map[ComponentType]reflect.Type{
-	CPlayerTag:  reflect.TypeOf(PlayerTag{}),
-	CPosition:   reflect.TypeOf(gruid.Point{}),
-	CRenderable: reflect.TypeOf(Renderable{}),
-	CName:       reflect.TypeOf(""),
-	CAITag:      reflect.TypeOf(AITag{}),
-	CTurnActor:  reflect.TypeOf(TurnActor{}),
-	CFOV:        reflect.TypeOf((*FOV)(nil)),
-	CHealth:     reflect.TypeOf(Health{}),
-	CCorpseTag:  reflect.TypeOf(CorpseTag{}),
+	CAITag:          reflect.TypeOf(AITag{}),
+	CBlocksMovement: reflect.TypeOf(BlocksMovement{}),
+	CCorpseTag:      reflect.TypeOf(CorpseTag{}),
+	CFOV:            reflect.TypeOf((*FOV)(nil)),
+	CHealth:         reflect.TypeOf(Health{}),
+	CName:           reflect.TypeOf(""),
+	CPlayerTag:      reflect.TypeOf(PlayerTag{}),
+	CPosition:       reflect.TypeOf(gruid.Point{}),
+	CRenderable:     reflect.TypeOf(Renderable{}),
+	CTurnActor:      reflect.TypeOf(TurnActor{}),
 }
 
 // GetGoType returns the corresponding Go type for a ComponentType
