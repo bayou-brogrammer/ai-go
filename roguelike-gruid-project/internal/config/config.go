@@ -15,15 +15,9 @@ type GameConfig struct {
 // ParseFlags parses command-line flags and returns a GameConfig
 func ParseFlags() *GameConfig {
 	config := &GameConfig{}
-
-	// Define command-line flags
 	flag.BoolVar(&config.DebugLogging, "debug", false, "Enable debug logging")
 	flag.BoolVar(&config.DebugLogging, "d", false, "Enable debug logging (shorthand)")
-
-	// Parse the flags
 	flag.Parse()
-
-	// Configure logging based on debug flag
 	if config.DebugLogging {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.SetOutput(os.Stdout)

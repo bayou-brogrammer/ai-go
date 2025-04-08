@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,9 +51,15 @@ func (tq *TurnQueue) Add(entityID ecs.EntityID, time uint64) {
 	logrus.Debugf("Added entity %d to turn queue with time %d", entityID, time)
 }
 
-func (tq *TurnQueue) AddToBack(entityID ecs.EntityID, time uint64) {
-	entry := TurnEntry{Time: time, EntityID: entityID}
-	heap.PushBack(tq.queue, entry)
+func (tq *TurnQueue) Remove(entityID ecs.EntityID) {
+	// Find the index of the entity in the heap
+	index := tq.queue.FindIndex(entityID)
+	if index == -1 {
+		logrus.Debugf("TurnQueue: Entity %d not found in queue", entityID)
+		return
+	}
+
+	heap.Remove(tq.queue, index)
 }
 
 // Next removes and returns the next entity (the one with the smallest time)
@@ -183,29 +190,24 @@ func (tq *TurnQueue) isValIDTurnActor(world *ecs.ECS, entityID ecs.EntityID) boo
 	}
 
 	// Check if it has required TurnActor component
-	// if !world.HasComponent(entityID, GetReflectType(TurnActor{})) {
-	// 	return false
-	// }
+	if !world.HasComponent(entityID, components.CTurnActor) {
+		return false
+	}
 
 	// Check for "dead" markers (game-specific logic)
-	// if world.HasComponent(entityID, GetReflectType(Dead{})) {
-	// 	return false
-	// }
+	if world.HasComponent(entityID, components.CCorpseTag) {
+		return false
+	}
 
-	// Check for health <= 0 (if Health component exists)
-	/*
-	   // Example health check:
-	   if comp, found := world.GetComponent(entityID, HealthComponentType); found {
-	       if health, ok := comp.(*Health); ok { // Type assertion
-	           if health.Current <= 0 {
-	               return false
-	           }
-	       } else {
-	           // Log error if component type is wrong?
-	           log.Printf("Warning: Found component for HealthComponentType but it wasn't a *Health for entity %d", entityID)
-	       }
-	   }
-	*/
+	// Check if entity has a Health component
+	if health, found := world.GetHealth(entityID); found {
+		if health.CurrentHP <= 0 {
+			return false
+		}
+	} else {
+		logrus.Errorf("TurnQueue: Entity %d has no Health component", entityID)
+		return false
+	}
 
 	return true
 }
@@ -216,7 +218,7 @@ func (tq *TurnQueue) getCleanupThreshold(world *ecs.ECS) uint32 {
 	// Base threshold
 	base_threshold := 100
 
-	entityCount := len(world.Entities)
+	entityCount := len(world.GetAllEntities())
 	queueSize := tq.Len()
 
 	// More frequent cleanup with larger entity counts or queue sizes
@@ -269,14 +271,12 @@ func (tq *TurnQueue) CleanupDeadEntities(world *ecs.ECS) CleanupMetrics {
 			removedCount++
 
 			name, ok := world.GetName(entry.EntityID)
-			if ok {
-				// Log removed entity (using helper for name)
-				logrus.Debugf("TurnQueue: Removed dead entity from turn queue: %s\n",
-					name)
-			} else {
-				logrus.Debugf("TurnQueue: Removed dead entity from turn queue: %d\n",
-					entry.EntityID)
+			if !ok {
+				name = "Unknown"
 			}
+
+			logrus.Debugf("TurnQueue: Removed dead entity from turn queue: %s\n",
+				name)
 		}
 	}
 

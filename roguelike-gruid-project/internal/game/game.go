@@ -6,11 +6,9 @@ import (
 
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/config"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/log"
 	turn "github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/turn_queue"
 )
-
-// Removed redundant const block
-
 // Game represents the main game state.
 type Game struct {
 	Depth           int
@@ -20,6 +18,7 @@ type Game struct {
 	ecs       *ecs.ECS        // The Entity-Component-System manager
 	PlayerID  ecs.EntityID    // Store the player's entity ID
 	turnQueue *turn.TurnQueue // Event queue for game events
+	Log       *log.MessageLog // Add log field for game messages
 
 	rand *rand.Rand
 }
@@ -28,6 +27,7 @@ func NewGame() *Game {
 	return &Game{
 		ecs:       ecs.NewECS(),
 		turnQueue: turn.NewTurnQueue(),
+		Log:       log.NewMessageLog(), // Initialize message log
 	}
 }
 

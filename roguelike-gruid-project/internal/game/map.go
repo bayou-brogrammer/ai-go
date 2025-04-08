@@ -11,9 +11,9 @@ import (
 
 // Game settings & map generation constants
 const (
-	maxRooms           = 10 // Max rooms on a level
-	roomMinSize        = 6  // Min width/height of a room
-	roomMaxSize        = 10 // Max width/height of a room
+	maxRooms           = 10
+	roomMinSize        = 6
+	roomMaxSize        = 10
 	maxMonstersPerRoom = 2  // Max monsters per room (excluding first)
 )
 
@@ -36,7 +36,7 @@ type Map struct {
 func NewMap(width, height int) *Map {
 	m := &Map{
 		Grid:     rl.NewGrid(width, height),
-		Explored: make([]uint64, (width*height+63)/64), // Initialize explored bitset
+		Explored: make([]uint64, (width*height+63)/64),
 		Width:    width,
 		Height:   height,
 	}
@@ -46,7 +46,7 @@ func NewMap(width, height int) *Map {
 
 // generateMap creates a new map layout with rooms and tunnels, and spawns monsters.
 // It now takes the game struct to access ECS and TurnQueue.
-func (m *Map) generateMap(g *Game, width, height int) gruid.Point { // Added *Game param
+func (m *Map) generateMap(g *Game, width, height int) gruid.Point {
 	m.Grid.Fill(WallCell)
 
 	var rooms []Rect
@@ -122,7 +122,7 @@ func (m *Map) IsOpaque(p gruid.Point) bool {
 		return true
 	}
 
-	return m.Grid.At(p) == WallCell // Walls block sight
+	return m.Grid.At(p) == WallCell
 }
 
 // SetExplored marks a point as explored in the global map bitset.
@@ -138,7 +138,7 @@ func (m *Map) SetExplored(p gruid.Point) {
 
 	// Check bounds before writing
 	if sliceIdx < len(m.Explored) {
-		m.Explored[sliceIdx] |= mask // Set explored bit
+		m.Explored[sliceIdx] |= mask
 	}
 }
 

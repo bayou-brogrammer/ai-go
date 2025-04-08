@@ -1,310 +1,175 @@
 package ecs
 
 import (
-	"fmt"
+	"reflect"
 	"sync"
 
-	"codeberg.org/anaseto/gruid" // Added gruid import
-	. "github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
+	"codeberg.org/anaseto/gruid"
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
 	"github.com/sirupsen/logrus"
 )
 
 // EntityID represents a unique identifier for an entity.
 type EntityID int
 
-type Entity interface{}
-
 // ECS manages entities and their components.
 type ECS struct {
 	nextEntityID EntityID
-	mu           sync.RWMutex // To handle concurrent access
-
-	Entities    map[EntityID]Entity      // set of entities
-	Positions   map[EntityID]gruid.Point // entity ID: map position
-	Renderables map[EntityID]Renderable  // entity ID: map renderable
-	Names       map[EntityID]string      // entity ID: map name
-	AITags      map[EntityID]AITag       // entity ID: presence of AI tag
-	TurnActors  map[EntityID]TurnActor   // entity ID: presence of TurnActor
-	FOVs        map[EntityID]*FOV        // entity ID: FOV
-	Healths     map[EntityID]Health      // entity ID: Health
+	mu           sync.RWMutex
+	entities     map[EntityID]struct{}                         // Just tracks valid entities
+	components   map[components.ComponentType]map[EntityID]any // Generic component storage
 }
 
 // NewECS creates and initializes a new ECS.
 func NewECS() *ECS {
 	return &ECS{
-		nextEntityID: 1, // Start IDs from 1
-		Entities:     make(map[EntityID]Entity),
-		Positions:    make(map[EntityID]gruid.Point),
-		Renderables:  make(map[EntityID]Renderable),
-		Names:        make(map[EntityID]string),
-		AITags:       make(map[EntityID]AITag),
-		TurnActors:   make(map[EntityID]TurnActor),
-		FOVs:         make(map[EntityID]*FOV),
-		Healths:      make(map[EntityID]Health),
+		nextEntityID: 1,
+		entities:     make(map[EntityID]struct{}),
+		components:   make(map[components.ComponentType]map[EntityID]any),
 	}
 }
 
 // AddEntity creates a new entity and returns its ID.
-func (ecs *ECS) AddEntity(entity Entity) EntityID {
+func (ecs *ECS) AddEntity() EntityID {
 	ecs.mu.Lock()
 	defer ecs.mu.Unlock()
 
 	id := ecs.nextEntityID
-	ecs.Entities[id] = entity
+	ecs.entities[id] = struct{}{}
 	ecs.nextEntityID++
 	return id
 }
 
-// EntityExists checks if an entity with the given ID exists.
+// RemoveEntity removes an entity and all its components.
+func (ecs *ECS) RemoveEntity(id EntityID) {
+	ecs.mu.Lock()
+	defer ecs.mu.Unlock()
+	delete(ecs.entities, id)
+	for _, components := range ecs.components {
+		delete(components, id)
+	}
+}
+
+// EntityExists checks if an entity exists.
 func (ecs *ECS) EntityExists(id EntityID) bool {
 	ecs.mu.RLock()
 	defer ecs.mu.RUnlock()
-	_, ok := ecs.Entities[id]
+	_, ok := ecs.entities[id]
 	return ok
 }
 
-// DestroyEntity removes an entity and all its components from the ECS.
-func (ecs *ECS) DestroyEntity(id EntityID) {
+// HasComponent checks if an entity has a specific component.
+func (ecs *ECS) HasComponent(id EntityID, compType components.ComponentType) bool {
+	_, exists := ecs.getComponent(id, compType)
+	return exists
+}
+
+// AddComponent adds or updates a component for an entity.
+func (ecs *ECS) AddComponent(id EntityID, compType components.ComponentType, component any) {
+	if !ecs.EntityExists(id) {
+		logrus.Debugf("Warning: Attempted to add component %s to non-existent entity %d", compType, id)
+		return
+	}
+
 	ecs.mu.Lock()
 	defer ecs.mu.Unlock()
-
-	delete(ecs.Entities, id)
-	delete(ecs.Positions, id)
-	delete(ecs.Renderables, id)
-	delete(ecs.Names, id)
-	delete(ecs.AITags, id) // Remove AI tag as well
-	delete(ecs.TurnActors, id)
-	delete(ecs.FOVs, id)
-	delete(ecs.Healths, id)
-}
-
-// EntitiesAt returns a slice of EntityIDs located at the given point.
-func (ecs *ECS) EntitiesAt(p gruid.Point) []EntityID {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-
-	var ids []EntityID
-	for id, pos := range ecs.Positions {
-		if pos == p {
-			ids = append(ids, id)
-		}
+	if ecs.components[compType] == nil {
+		ecs.components[compType] = make(map[EntityID]any)
 	}
-	return ids
+
+	ecs.components[compType][id] = component
 }
 
-// GetAllEntities returns all managed entity IDs.
-func (ecs *ECS) GetAllEntities() []EntityID {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-	ids := make([]EntityID, 0, len(ecs.Entities)) // Iterate over Entities map for completeness
-	for id := range ecs.Entities {
-		ids = append(ids, id)
+// AddComponents adds multiple components to an entity at once.
+func (ecs *ECS) AddComponents(id EntityID, comps ...any) {
+	if !ecs.EntityExists(id) {
+		logrus.Debugf("Warning: Attempted to add components to non-existent entity %d", id)
+		return
 	}
-	return ids
-}
 
-// GetEntitiesWithPositionAndRenderable queries entities having both Position and Renderable components.
-func (ecs *ECS) GetEntitiesWithPositionAndRenderable() []EntityID {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-
-	var ids []EntityID
-	for id := range ecs.Entities {
-		// Check presence in both maps directly
-		_, posOk := ecs.Positions[id]
-		_, renOk := ecs.Renderables[id]
-		if posOk && renOk {
-			ids = append(ids, id)
-		}
-	}
-	return ids
-}
-
-// GetEntitiesWithPositionAndFOV queries entities having both Position and FOV components.
-func (ecs *ECS) GetEntitiesWithPositionAndFOV() []EntityID {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-
-	var ids []EntityID
-	// Iterate over the smaller map (likely FOVs) for potential efficiency
-	for id := range ecs.FOVs {
-		// Check if the entity also has a Position
-		if _, posOk := ecs.Positions[id]; posOk {
-			// Ensure the entity actually still exists (optional, but safer)
-			if ecs.entityExistsUnlocked(id) {
-				ids = append(ids, id)
+	for _, comp := range comps {
+		compType := reflect.TypeOf(comp)
+		if compType.Kind() == reflect.Ptr && compType.Elem().Kind() != reflect.Interface {
+			// Keep as pointer for FOV which is stored as *FOV
+			if compType == reflect.TypeOf((*components.FOV)(nil)) {
+				ecs.AddComponent(id, components.CFOV, comp)
+				continue
 			}
 		}
+
+		// Position component
+		if compType == reflect.TypeOf(gruid.Point{}) {
+			ecs.AddComponent(id, components.CPosition, comp)
+			continue
+		}
+
+		// Name component
+		if compType == reflect.TypeOf(components.Name{}) {
+			ecs.AddComponent(id, components.CName, comp)
+			continue
+		}
+
+		// All other components
+		found := false
+		for ct, t := range components.TypeToComponent {
+			if t == compType {
+				ecs.AddComponent(id, ct, comp)
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			logrus.Warnf("Unknown component type %T for entity %d", comp, id)
+		}
 	}
-	return ids
 }
 
-
-// --- Setters ---
-
-// AddPosition adds or updates the Position component for an entity.
-func (ecs *ECS) AddPosition(id EntityID, position gruid.Point) *ECS {
+// RemoveComponent removes a component from an entity.
+func (ecs *ECS) RemoveComponent(id EntityID, compType components.ComponentType) {
 	ecs.mu.Lock()
 	defer ecs.mu.Unlock()
-	if !ecs.entityExistsUnlocked(id) {
-		logrus.Debugf("Warning: Attempted to add Position to non-existent entity %d\n", id)
-		return ecs
+
+	if components, ok := ecs.components[compType]; ok {
+		delete(components, id)
 	}
-	ecs.Positions[id] = position
-	return ecs
 }
 
-// AddRenderable adds or updates the Renderable component for an entity.
-func (ecs *ECS) AddRenderable(id EntityID, renderable Renderable) *ECS {
-	ecs.mu.Lock()
-	defer ecs.mu.Unlock()
-	if !ecs.entityExistsUnlocked(id) {
-		logrus.Debugf("Warning: Attempted to add Renderable to non-existent entity %d\n", id)
-		return ecs
+// RemoveComponents removes multiple components from an entity.
+func (ecs *ECS) RemoveComponents(id EntityID, compTypes ...components.ComponentType) {
+	for _, compType := range compTypes {
+		ecs.RemoveComponent(id, compType)
 	}
-	ecs.Renderables[id] = renderable
-	return ecs
 }
 
-// AddName adds or updates the Name component for an entity.
-func (ecs *ECS) AddName(id EntityID, name string) *ECS {
-	ecs.mu.Lock()
-	defer ecs.mu.Unlock()
-	if !ecs.entityExistsUnlocked(id) {
-		logrus.Debugf("Warning: Attempted to add Name to non-existent entity %d\n", id)
-		return ecs
+// GetComponentTyped retrieves a component for an entity and returns it as the concrete type T.
+// Returns the zero value of T and false if the component doesn't exist or if type assertion fails.
+func GetComponentTyped[T any](ecs *ECS, id EntityID, compType components.ComponentType) (T, bool) {
+	var result T
+	comp, ok := ecs.getComponent(id, compType)
+	if !ok {
+		return result, false
 	}
-	ecs.Names[id] = name
-	return ecs
-}
-
-func (ecs *ECS) AddAITag(id EntityID) *ECS {
-	ecs.mu.Lock()
-	defer ecs.mu.Unlock()
-	if !ecs.entityExistsUnlocked(id) {
-		logrus.Debugf("Warning: Attempted to add AITag to non-existent entity %d\n", id)
-		return ecs
-	}
-	ecs.AITags[id] = AITag{}
-	return ecs
-}
-
-func (ecs *ECS) AddTurnActor(id EntityID, actor TurnActor) *ECS {
-	ecs.mu.Lock()
-	defer ecs.mu.Unlock()
-	if !ecs.entityExistsUnlocked(id) {
-		logrus.Debugf("Warning: Attempted to add TurnActor to non-existent entity %d\n", id)
-		return ecs
+	typedComp, ok := comp.(T)
+	if !ok {
+		return result, false
 	}
 
-	ecs.TurnActors[id] = actor
-	return ecs
+	return typedComp, true
 }
 
-func (ecs *ECS) AddFOV(id EntityID, fov *FOV) *ECS {
-	ecs.mu.Lock()
-	defer ecs.mu.Unlock()
-	if !ecs.entityExistsUnlocked(id) {
-		logrus.Debugf("Warning: Attempted to add FOV to non-existent entity %d\n", id)
-		return ecs
-	}
-	ecs.FOVs[id] = fov
-	return ecs
-}
+// --- Helper Functions ---
 
-func (ecs *ECS) AddHealth(id EntityID, health Health) *ECS {
-	ecs.mu.Lock()
-	defer ecs.mu.Unlock()
-	if !ecs.entityExistsUnlocked(id) {
-		logrus.Debugf("Warning: Attempted to add Health to non-existent entity %d\n", id)
-		return ecs
-	}
-	ecs.Healths[id] = health
-	return ecs
-}
-
-// --- Getters ---
-
-// GetPosition retrieves the Position component for an entity.
-func (ecs *ECS) GetPosition(id EntityID) (gruid.Point, bool) {
+// GetComponent retrieves a component for an entity.
+func (ecs *ECS) getComponent(id EntityID, compType components.ComponentType) (any, bool) {
 	ecs.mu.RLock()
 	defer ecs.mu.RUnlock()
-	pos, ok := ecs.Positions[id]
-	return pos, ok
-}
 
-// GetRenderable retrieves the Renderable component for an entity.
-func (ecs *ECS) GetRenderable(id EntityID) (Renderable, bool) {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-	renderable, ok := ecs.Renderables[id]
-	return renderable, ok
-}
-
-// GetName retrieves the Name component for an entity.
-func (ecs *ECS) GetName(id EntityID) (string, bool) {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-	name, ok := ecs.Names[id]
-	return name, ok
-}
-
-func (ecs *ECS) GetTurnActor(id EntityID) (TurnActor, bool) {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-	actor, ok := ecs.TurnActors[id]
-	return actor, ok
-}
-
-func (ecs *ECS) GetTurnActorUnchecked(id EntityID) TurnActor {
-	return ecs.TurnActors[id]
-}
-
-func (ecs *ECS) GetFOV(id EntityID) (*FOV, bool) {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-	fov, ok := ecs.FOVs[id]
-	return fov, ok
-}
-
-// GetHealth retrieves the Health component for an entity.
-func (ecs *ECS) GetHealth(id EntityID) (Health, bool) {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-	health, ok := ecs.Healths[id]
-	return health, ok
-}
-
-// HasAITag checks if an entity has the AITag component.
-func (ecs *ECS) HasAITag(id EntityID) bool {
-	ecs.mu.RLock()
-	defer ecs.mu.RUnlock()
-	_, ok := ecs.AITags[id]
-	return ok
-}
-
-// --- Helpers ---
-
-// entityExistsUnlocked is an internal helper to check entity existence without locking (caller must hold lock).
-func (ecs *ECS) entityExistsUnlocked(id EntityID) bool {
-	_, ok := ecs.Entities[id]
-	return ok
-}
-
-// MoveEntity updates the position of an existing entity.
-func (ecs *ECS) MoveEntity(id EntityID, p gruid.Point) error {
-	ecs.mu.Lock()
-	defer ecs.mu.Unlock()
-
-	if !ecs.entityExistsUnlocked(id) {
-		return fmt.Errorf("entity %d not found", id)
+	if componentMap, ok := ecs.components[compType]; ok {
+		if component, exists := componentMap[id]; exists {
+			return component, true
+		}
 	}
 
-	if _, ok := ecs.Positions[id]; !ok {
-		// This case should ideally not happen if AddPosition checks existence
-		return fmt.Errorf("entity %d exists but has no Position component", id)
-	}
-
-	ecs.Positions[id] = p
-	return nil
+	return nil, false
 }

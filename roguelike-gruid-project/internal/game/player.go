@@ -5,7 +5,8 @@ import (
 
 	"codeberg.org/anaseto/gruid"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
-	"github.com/sirupsen/logrus" // Added for logging
+	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
+	"github.com/sirupsen/logrus"
 )
 
 // checkCollision checks if a given position is a valid move
@@ -23,7 +24,7 @@ func (g *Game) checkCollision(pos gruid.Point) bool {
 		//  continue
 		// }
 		// TODO: Refactor checkCollision to accept the moving entity's ID
-		if _, ok := g.ecs.GetPosition(id); ok { // Simplified check for now
+		if g.ecs.HasComponent(id, components.CPosition) {
 			return true // Collision with *any* other entity at the target position
 		}
 	}
@@ -55,7 +56,7 @@ func (g *Game) EntityBump(entityID ecs.EntityID, delta gruid.Point) (moved bool,
 		}
 
 		// Check if the target entity has health (i.e., is attackable)
-		if _, ok := g.ecs.GetHealth(otherID); ok {
+		if g.ecs.HasComponent(otherID, components.CHealth) {
 			// Target is attackable. Queue an AttackAction for the bumping entity.
 			logrus.Debugf("Entity %d bumping into attackable entity %d. Queuing AttackAction.", entityID, otherID)
 
@@ -71,7 +72,7 @@ func (g *Game) EntityBump(entityID ecs.EntityID, delta gruid.Point) (moved bool,
 				AttackerID: entityID,
 				TargetID:   otherID,
 			}
-			actor.AddAction(attackAction) // Add action to the actor's queue
+			actor.AddAction(attackAction)
 
 			// Return moved=false because the bump resulted in an attack, not movement.
 			// The turn cost will be handled by the AttackAction itself when executed.

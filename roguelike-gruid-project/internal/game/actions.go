@@ -44,17 +44,11 @@ func (md *Model) normalModeAction(action action) (again bool, eff gruid.Effect, 
 			Direction: keyToDir(action),
 			EntityID:  g.PlayerID,
 		}
-		actor := g.ecs.GetTurnActorUnchecked(g.PlayerID)
+		actor, _ := g.ecs.GetTurnActor(g.PlayerID)
 		actor.AddAction(action)
 
 		return false, eff, nil
 
-		// Execute movement action; if EntityBump returns an error, repeat the turn; otherwise, end the turn based on the movement result.
-		// moved, err := g.EntityBump(g.PlayerID, keyToDir(action))
-		// if err != nil {
-		// 	return true, eff, err
-		// }
-		// return !moved, eff, nil
 	default:
 		logrus.Debugf("Unknown action: %v\n", action)
 		err = actionErrorUnknown

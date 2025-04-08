@@ -11,3 +11,6 @@ type PlayerTag struct{}
 
 // AITag component marks an entity as having AI control
 type AITag struct{}
+
+// CorpseTag component marks an entity as a corpse
+type CorpseTag struct{}

@@ -23,17 +23,15 @@ func (md *Model) Update(msg gruid.Msg) gruid.Effect {
 }
 
 func (md *Model) update(msg gruid.Msg) gruid.Effect {
+
 	g := md.game
 	waitingForPlayer := g.waitingForInput
-
-	// If it's now the player's turn, handle their input
 	if waitingForPlayer {
 		var eff gruid.Effect
 		switch md.mode {
 		case modeQuit:
 			return nil // Should not happen if waiting for player?
 		case modeNormal:
-			// Player's turn: handle input message
 			eff = md.updateNormal(msg)
 		}
 		return eff

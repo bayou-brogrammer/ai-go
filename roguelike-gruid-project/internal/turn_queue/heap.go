@@ -45,3 +45,13 @@ func (h *turnHeap) Pop() any {
 	*h = old[0 : n-1]
 	return item
 }
+
+func (h *turnHeap) FindIndex(entityID ecs.EntityID) int {
+	for i, entry := range *h {
+		if entry.EntityID == entityID {
+			return i
+		}
+	}
+
+	return -1
+}

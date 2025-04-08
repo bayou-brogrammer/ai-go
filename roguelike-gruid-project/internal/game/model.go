@@ -38,14 +38,10 @@ func (md *Model) init() gruid.Effect {
 	logrus.Debug("========= Game Initialization Started =========")
 	md.game.InitLevel()
 	logrus.Debug("Level initialized")
-
-	// Log the state of the turn queue before processing
 	logrus.Debug("About to process turn queue for the first time")
 
 	md.processTurnQueue()
 	logrus.Debug("Initial turn queue processing completed")
-
-	// Log the player's state after initialization
 	logrus.Debug("========= Game Initialization Completed =========")
 
 	if runtime.GOOS == "js" {
@@ -64,12 +60,8 @@ func (md *Model) EndTurn() gruid.Effect {
 	g := md.game
 	g.waitingForInput = false
 	logrus.Debug("Set waitingForInput = false")
-
-	// Process monster turns
 	g.monstersTurn()
 	logrus.Debug("Monster turns processed")
-
-	// Process the turn queue to handle all actions
 	logrus.Debug("Calling processTurnQueue")
 	md.processTurnQueue()
 	logrus.Debug("processTurnQueue completed")

@@ -10,24 +10,23 @@ import (
 )
 
 func (g *Game) SpawnPlayer(playerStart gruid.Point) {
-	// Create the player entity
-	playerID := g.ecs.AddEntity(components.PlayerTag{})
+	logrus.Debugf("Spawning player at %v", playerStart)
+	playerID := g.ecs.AddEntity()
 	g.PlayerID = playerID // Store the player ID in the game struct
 
-	// Add components to the player
-	// Use the start position returned by NewMap
-	g.ecs.AddPosition(playerID, playerStart).
-		AddRenderable(playerID, components.Renderable{Glyph: '@', Color: ui.ColorPlayer}).
-		AddTurnActor(playerID, components.NewTurnActor(100)).
-		AddFOV(playerID, components.NewFOVComponent(4, g.Map.Width, g.Map.Height)) // Use correct constructor
-
-	// Add the player to the turn queue
+	g.ecs.AddComponents(playerID,
+		playerStart,
+		components.PlayerTag{},
+		components.Renderable{Glyph: '@', Color: ui.ColorPlayer},
+		components.NewTurnActor(100),
+		components.NewFOVComponent(4, g.Map.Width, g.Map.Height),
+	)
 	g.turnQueue.Add(playerID, g.turnQueue.CurrentTime)
+
 }
 
 func (g *Game) SpawnMonster(pos gruid.Point) {
-	// Create Orc entity (example)
-	monsterID := g.ecs.AddEntity(struct{}{})
+	monsterID := g.ecs.AddEntity()
 
 	monsterNames := []string{"Orc", "Troll", "Goblin", "Kobold"}
 	monsterName := monsterNames[rand.Intn(len(monsterNames))]
@@ -57,18 +56,17 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 		maxHP = 6
 	}
 
-	g.ecs.AddName(monsterID, monsterName).
-		AddPosition(monsterID, pos).
-		AddRenderable(monsterID, components.Renderable{Glyph: rune, Color: color}).
-		AddTurnActor(monsterID, components.NewTurnActor(speed)).
-		AddHealth(monsterID, components.Health{CurrentHP: maxHP, MaxHP: maxHP}). // Add Health component
-		AddAITag(monsterID).
-		AddFOV(monsterID, components.NewFOVComponent(6, g.Map.Width, g.Map.Height)) // Use correct constructor
-
-	// Add to turn queue at current turn time
+	g.ecs.AddComponents(monsterID,
+		pos,
+		components.AITag{},
+		components.Name{Name: monsterName},
+		components.Renderable{Glyph: rune, Color: color},
+		components.Health{CurrentHP: maxHP, MaxHP: maxHP},
+		components.NewFOVComponent(6, g.Map.Width, g.Map.Height),
+		components.NewTurnActor(speed),
+	)
 	logrus.Debugf("Created monster ID=%d at position %v, adding to turn queue at time %d",
 		monsterID, pos, g.turnQueue.CurrentTime+100)
-
-	// Enqueue the monster
 	g.turnQueue.Add(monsterID, g.turnQueue.CurrentTime+100)
+
 }

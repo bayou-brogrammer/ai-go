@@ -22,10 +22,6 @@ var KEYS_NORMAL = map[gruid.Key]action{
 	"Q":                 ActionQuit,
 }
 
-func getMovementActions() (action, action, action, action) {
-	return ActionW, ActionS, ActionN, ActionE
-}
-
 func keyToDir(k action) (p gruid.Point) {
 	switch k {
 	case ActionW:
