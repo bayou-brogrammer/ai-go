@@ -187,11 +187,6 @@ func (ecs *ECS) GetAITag(id EntityID) (components.AITag, bool) {
 	return GetComponentTyped[components.AITag](ecs, id, components.CAITag)
 }
 
-// GetHitFlash returns the HitFlash component for an entity.
-func (ecs *ECS) GetHitFlash(id EntityID) (components.HitFlash, bool) {
-	return GetComponentTyped[components.HitFlash](ecs, id, components.CHitFlash)
-}
-
 // GetCorpseTag returns the CorpseTag component for an entity.
 func (ecs *ECS) GetCorpseTag(id EntityID) (components.CorpseTag, bool) {
 	return GetComponentTyped[components.CorpseTag](ecs, id, components.CCorpseTag)

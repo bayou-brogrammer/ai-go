@@ -65,9 +65,6 @@ func (a AttackAction) Execute(g *Game) (cost uint, err error) {
 	damage := 1 // Simple fixed damage for now
 	targetHealth.CurrentHP -= damage
 
-	// Add hit flash component to the target using the generic system
-	g.ecs.AddComponent(a.TargetID, components.CHitFlash, components.HitFlash{})
-
 	// Determine message color based on who is attacking
 	var msgColor gruid.Color
 	if a.AttackerID == g.PlayerID {

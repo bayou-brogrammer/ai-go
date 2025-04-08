@@ -2,11 +2,9 @@ package game
 
 import (
 	"fmt"
-	"time"
 
 	"codeberg.org/anaseto/gruid" // Needed for FOV type
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ui" // For colors
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/utils"
 	"github.com/sirupsen/logrus"
@@ -58,20 +56,7 @@ func (md *Model) Draw() gruid.Grid {
 	}
 
 	// Render entities using the ECS RenderSystem, passing player FOV if available
-	needsRedraw := RenderSystem(g.ecs, md.grid, playerFOVComp, g.Map.Width)
-	if needsRedraw {
-		g.ClearHitFlashes()
-
-		c1 := make(chan string, 1)
-		go func() {
-			fmt.Println("SLEEPING")
-			// Clear hit flashes after rendering but before returning the grid
-			time.Sleep(300 * time.Millisecond)
-			fmt.Println("DRAWING")
-			md.Draw()
-			c1 <- "done"
-		}()
-	}
+	RenderSystem(g.ecs, md.grid, playerFOVComp, g.Map.Width)
 
 	return md.grid
 }
@@ -86,25 +71,7 @@ func drawEntity(ecs *ecs.ECS, pos gruid.Point, entityID ecs.EntityID, grid gruid
 	needsRedraw := false
 	color := renderable.Color
 
-	// Check if entity has hit flash using the generic system
-	if ecs.HasComponent(entityID, components.CHitFlash) {
-		// Override color with hit flash color - define this in your color constants
-		color = ui.ColorHitFlash // Typically white or bright red
-		needsRedraw = true
-	}
-
 	// Draw the entity with the appropriate color
 	grid.Set(pos, gruid.Cell{Rune: renderable.Glyph, Style: gruid.Style{Fg: color}})
 	return needsRedraw
-}
-
-// ClearHitFlashes removes all HitFlash components after they've been rendered
-func (g *Game) ClearHitFlashes() {
-	// Get all entities with HitFlash component using the generic system
-	entities := g.ecs.GetEntitiesWithComponent(components.CHitFlash)
-
-	// Remove the HitFlash component from each entity
-	for _, entityID := range entities {
-		g.ecs.RemoveComponent(entityID, components.CHitFlash)
-	}
 }

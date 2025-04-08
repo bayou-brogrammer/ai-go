@@ -23,7 +23,6 @@ func (md *Model) Update(msg gruid.Msg) gruid.Effect {
 }
 
 func (md *Model) update(msg gruid.Msg) gruid.Effect {
-
 	g := md.game
 	waitingForPlayer := g.waitingForInput
 	if waitingForPlayer {
