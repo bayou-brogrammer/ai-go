@@ -51,6 +51,7 @@ func (md *Model) init() gruid.Effect {
 
 	md.game.FOVSystem()
 	md.processTurnQueue()
+
 	logrus.Debug("Initial turn queue processing completed")
 	logrus.Debug("========= Game Initialization Completed =========")
 
@@ -65,16 +66,13 @@ func (md *Model) init() gruid.Effect {
 // turn.
 func (md *Model) EndTurn() gruid.Effect {
 	logrus.Debug("EndTurn called - player finished their turn")
-	md.mode = modeNormal
 
+	md.mode = modeNormal
 	g := md.game
 	g.waitingForInput = false
-	logrus.Debug("Set waitingForInput = false")
+
 	g.monstersTurn()
-	logrus.Debug("Monster turns processed")
-	logrus.Debug("Calling processTurnQueue")
 	md.processTurnQueue()
-	logrus.Debug("processTurnQueue completed")
 
 	// Track update metrics
 	md.updateCount++
@@ -85,8 +83,8 @@ func (md *Model) EndTurn() gruid.Effect {
 }
 
 // GetDebugInfo returns current debug information
-func (md *Model) GetDebugInfo() map[string]interface{} {
-	return map[string]interface{}{
+func (md *Model) GetDebugInfo() map[string]any {
+	return map[string]any{
 		"mode":            md.mode,
 		"updateCount":     md.updateCount,
 		"lastUpdateTime":  md.lastUpdateTime,
