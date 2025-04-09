@@ -17,7 +17,10 @@ func (g *Game) SpawnPlayer(playerStart gruid.Point) {
 	g.ecs.AddComponents(playerID,
 		playerStart,
 		components.PlayerTag{},
+		components.BlocksMovement{},
+		components.Name{Name: "Player"},
 		components.Renderable{Glyph: '@', Color: ui.ColorPlayer},
+		components.NewHealth(10),
 		components.NewTurnActor(100),
 		components.NewFOVComponent(4, g.Map.Width, g.Map.Height),
 	)
@@ -40,31 +43,33 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 	case "Orc":
 		rune = 'o'
 		speed = 100
-		maxHP = 10
+		maxHP = 1
 	case "Troll":
 		rune = 'T'
 		speed = 200
-		maxHP = 16
+		maxHP = 1
 	case "Goblin":
 		rune = 'g'
 		speed = 100
 		color = ui.ColorSleepingMonster // Goblins use a different color
-		maxHP = 8
+		maxHP = 1
 	case "Kobold":
 		rune = 'k'
 		speed = 150
-		maxHP = 6
+		maxHP = 1
 	}
 
 	g.ecs.AddComponents(monsterID,
 		pos,
 		components.AITag{},
+		components.BlocksMovement{},
 		components.Name{Name: monsterName},
 		components.Renderable{Glyph: rune, Color: color},
-		components.Health{CurrentHP: maxHP, MaxHP: maxHP},
+		components.NewHealth(maxHP),
 		components.NewFOVComponent(6, g.Map.Width, g.Map.Height),
 		components.NewTurnActor(speed),
 	)
+
 	logrus.Debugf("Created monster ID=%d at position %v, adding to turn queue at time %d",
 		monsterID, pos, g.turnQueue.CurrentTime+100)
 	g.turnQueue.Add(monsterID, g.turnQueue.CurrentTime+100)

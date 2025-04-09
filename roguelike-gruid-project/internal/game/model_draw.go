@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	"codeberg.org/anaseto/gruid" // Needed for FOV type
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ui" // For colors
@@ -13,7 +11,6 @@ import (
 // Draw implements gruid.Model.Draw. It clears the grid, then renders the map
 // and all entities using the RenderSystem.
 func (md *Model) Draw() gruid.Grid {
-	fmt.Println("Draw called")
 	g := md.game
 
 	utils.Assert(g != nil, "Game is nil")

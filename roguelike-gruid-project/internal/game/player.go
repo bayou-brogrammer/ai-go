@@ -50,7 +50,7 @@ func (g *Game) EntityBump(entityID ecs.EntityID, delta gruid.Point) (moved bool,
 	}
 
 	// Check for collision with other entities at the target position
-	for _, otherID := range g.ecs.EntitiesAt(newPos) {
+	for _, otherID := range g.ecs.GetEntitiesAtWithComponents(newPos, components.CBlocksMovement) {
 		if otherID == entityID {
 			continue // Don't interact with self
 		}

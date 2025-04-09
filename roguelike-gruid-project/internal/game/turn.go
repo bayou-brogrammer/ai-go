@@ -94,13 +94,10 @@ func (a AttackAction) Execute(g *Game) (cost uint, err error) {
 // handleEntityDeath handles an entity's death, either removing it completely
 // or turning it into a corpse (the preferred option)
 func (g *Game) handleEntityDeath(entityID ecs.EntityID, entityName string) {
-	// Log the death event
 	g.Log.AddMessagef(ui.ColorDeath, "%s dies!", entityName)
 	logrus.Infof("Entity %s (%d) has died.", entityName, entityID)
 
-	// Check if this is the player
 	if entityID == g.PlayerID {
-		// Handle player death specially (could trigger game over screen later)
 		g.Log.AddMessagef(ui.ColorCritical, "You died! Game over!")
 		logrus.Info("Player has died. Game over!")
 		// TODO: Implement game over state
@@ -108,22 +105,19 @@ func (g *Game) handleEntityDeath(entityID ecs.EntityID, entityName string) {
 	}
 
 	// Turn entity into a corpse
-	// 1. Remove components that make it active or interactive
 	g.ecs.RemoveComponents(entityID,
-		components.CTurnActor,      // Remove from turn system
-		components.CAITag,          // Remove AI behavior
-		components.CBlocksMovement, // Allow walking over corpses
+		components.CTurnActor,
+		components.CAITag,
+		components.CBlocksMovement,
+		components.CHealth,
 	)
 
-	// 2. Change appearance to a corpse
 	g.ecs.AddComponents(entityID,
 		components.Renderable{Glyph: '%', Color: ui.ColorCorpse},
 		components.CorpseTag{},
-		components.DeadTag{},
 	)
 
-	// 3. Remove from turn queue
-	// The queue's Remove method handles finding and removing by entity ID
+	// Remove from turn queue
 	g.turnQueue.Remove(entityID)
 
 	// 4. Optional: add decomposition logic or timer for corpse cleanup

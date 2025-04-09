@@ -63,3 +63,14 @@ type Health struct {
 	CurrentHP int
 	MaxHP     int
 }
+
+func NewHealth(maxHP int) Health {
+	return Health{
+		CurrentHP: maxHP,
+		MaxHP:     maxHP,
+	}
+}
+
+func (h *Health) IsDead() bool {
+	return h.CurrentHP <= 0
+}

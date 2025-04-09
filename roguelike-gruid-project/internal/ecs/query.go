@@ -27,6 +27,20 @@ func (ecs *ECS) EntitiesAt(p gruid.Point) []EntityID {
 	}
 	return ids
 }
+func (ecs *ECS) GetEntitiesAtWithComponents(p gruid.Point, compType components.ComponentType) []EntityID {
+	ecs.mu.RLock()
+	defer ecs.mu.RUnlock()
+
+	ids := ecs.EntitiesAt(p)
+	results := make([]EntityID, 0, len(ids))
+	for _, id := range ids {
+		if ecs.HasComponent(id, compType) {
+			results = append(results, id)
+		}
+	}
+
+	return results
+}
 
 // GetAllEntities returns all managed entity IDs.
 func (ecs *ECS) GetAllEntities() []EntityID {
