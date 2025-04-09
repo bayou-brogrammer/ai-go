@@ -27,6 +27,7 @@ func (ecs *ECS) EntitiesAt(p gruid.Point) []EntityID {
 	}
 	return ids
 }
+
 func (ecs *ECS) GetEntitiesAtWithComponents(p gruid.Point, compType components.ComponentType) []EntityID {
 	ecs.mu.RLock()
 	defer ecs.mu.RUnlock()

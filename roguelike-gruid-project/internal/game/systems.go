@@ -37,7 +37,7 @@ func RenderSystem(ecs *ecs.ECS, grid gruid.Grid, playerFOV *components.FOV, mapW
 
 // Define the passable function once (reusing Map's IsOpaque)
 func (g *Game) passable(p gruid.Point) bool {
-	return !g.Map.IsOpaque(p)
+	return !g.dungeon.IsOpaque(p)
 }
 
 // FOVSystem updates the visibility for all entities with an FOV component.
@@ -53,11 +53,11 @@ func FOVSystem(g *Game) {
 
 		// Update visibility and explored status for points in the circle
 		for _, p := range visibleTiles {
-			fov.SetVisible(p, g.Map.Width)
+			fov.SetVisible(p, g.dungeon.Width)
 
 			// If this is the player, also update the global explored map
 			if id == g.PlayerID {
-				g.Map.SetExplored(p)
+				g.dungeon.SetExplored(p)
 			}
 		}
 	}

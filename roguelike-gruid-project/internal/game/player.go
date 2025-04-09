@@ -11,7 +11,7 @@ import (
 
 // checkCollision checks if a given position is a valid move
 func (g *Game) checkCollision(pos gruid.Point) bool {
-	if !g.Map.InBounds(pos) {
+	if !g.dungeon.InBounds(pos) {
 		return true // Out of bounds
 	}
 
@@ -44,7 +44,7 @@ func (g *Game) EntityBump(entityID ecs.EntityID, delta gruid.Point) (moved bool,
 	newPos := currentPos.Add(delta)
 
 	// Check map bounds and walkability first
-	if !g.Map.InBounds(newPos) || !g.Map.isWalkable(newPos) {
+	if !g.dungeon.InBounds(newPos) || !g.dungeon.isWalkable(newPos) {
 		// TODO: Differentiate between bumping wall and out of bounds?
 		return false, nil // Bumped into wall or edge
 	}

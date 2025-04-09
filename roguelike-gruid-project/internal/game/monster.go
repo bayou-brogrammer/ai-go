@@ -61,7 +61,7 @@ func moveMonster(g *Game, id ecs.EntityID) (GameAction, error) {
 	var validMove *gruid.Point
 	for _, dir := range directions {
 		newPos := pos.Add(dir)
-		if g.Map.isWalkable(newPos) && len(g.ecs.EntitiesAt(newPos)) == 0 { // EntitiesAt already uses new system
+		if g.dungeon.isWalkable(newPos) && len(g.ecs.EntitiesAt(newPos)) == 0 { // EntitiesAt already uses new system
 			validMove = &dir
 			break
 		}

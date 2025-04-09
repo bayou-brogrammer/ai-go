@@ -25,7 +25,6 @@ const (
 )
 
 // Game element colors - each element in the game gets a semantic color.
-// This allows for easy theming by changing only these values.
 var (
 	ColorBg,
 	ColorBgDark,

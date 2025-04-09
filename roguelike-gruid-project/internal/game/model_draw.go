@@ -15,7 +15,7 @@ func (md *Model) Draw() gruid.Grid {
 
 	utils.Assert(g != nil, "Game is nil")
 	utils.Assert(g.ecs != nil, "ECS is nil")
-	utils.Assert(g.Map != nil, "Map is nil")
+	utils.Assert(g.dungeon != nil, "Map is nil")
 
 	// Update FOV for all entities before drawing
 	FOVSystem(g)
@@ -31,29 +31,29 @@ func (md *Model) Draw() gruid.Grid {
 	// Clear the grid before drawing
 	md.grid.Fill(gruid.Cell{Rune: ' '})
 
-	it := g.Map.Grid.Iterator()
+	it := g.dungeon.Grid.Iterator()
 	for it.Next() {
 		p := it.P()
 
-		isExplored := g.Map.IsExplored(p)
+		isExplored := g.dungeon.IsExplored(p)
 		if !isExplored {
 			continue
 		}
 
-		isVisible := playerFOVComp.IsVisible(p, g.Map.Width)
-		isWall := g.Map.IsWall(p)
+		isVisible := playerFOVComp.IsVisible(p, g.dungeon.Width)
+		isWall := g.dungeon.IsWall(p)
 
 		// Use the new helper function to get the appropriate style
 		style := ui.GetMapStyle(isWall, isVisible, isExplored)
 
 		md.grid.Set(p, gruid.Cell{
-			Rune:  g.Map.Rune(it.Cell()),
+			Rune:  g.dungeon.Rune(it.Cell()),
 			Style: style,
 		})
 	}
 
 	// Render entities using the ECS RenderSystem, passing player FOV if available
-	RenderSystem(g.ecs, md.grid, playerFOVComp, g.Map.Width)
+	RenderSystem(g.ecs, md.grid, playerFOVComp, g.dungeon.Width)
 
 	return md.grid
 }

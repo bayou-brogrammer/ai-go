@@ -22,7 +22,7 @@ func (g *Game) SpawnPlayer(playerStart gruid.Point) {
 		components.Renderable{Glyph: '@', Color: ui.ColorPlayer},
 		components.NewHealth(10),
 		components.NewTurnActor(100),
-		components.NewFOVComponent(4, g.Map.Width, g.Map.Height),
+		components.NewFOVComponent(4, g.dungeon.Width, g.dungeon.Height),
 	)
 	g.turnQueue.Add(playerID, g.turnQueue.CurrentTime)
 
@@ -66,7 +66,7 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 		components.Name{Name: monsterName},
 		components.Renderable{Glyph: rune, Color: color},
 		components.NewHealth(maxHP),
-		components.NewFOVComponent(6, g.Map.Width, g.Map.Height),
+		components.NewFOVComponent(6, g.dungeon.Width, g.dungeon.Height),
 		components.NewTurnActor(speed),
 	)
 

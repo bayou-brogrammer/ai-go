@@ -74,7 +74,7 @@ func (a AttackAction) Execute(g *Game) (cost uint, err error) {
 	} else {
 		msgColor = ui.ColorNeutralAttack // Define in ui/color.go
 	}
-	g.Log.AddMessagef(msgColor, "%s attacks %s for %d damage.", attackerName, targetName, damage)
+	g.log.AddMessagef(msgColor, "%s attacks %s for %d damage.", attackerName, targetName, damage)
 
 	logrus.Infof("%s (%d) attacks %s (%d) for %d damage. %s HP: %d/%d",
 		attackerName, a.AttackerID,
@@ -84,7 +84,7 @@ func (a AttackAction) Execute(g *Game) (cost uint, err error) {
 	g.ecs.AddComponent(a.TargetID, components.CHealth, targetHealth)
 
 	// Check for death (CurrentHP <= 0) and handle it
-	if targetHealth.CurrentHP <= 0 {
+	if targetHealth.IsDead() {
 		g.handleEntityDeath(a.TargetID, targetName)
 	}
 
@@ -94,11 +94,11 @@ func (a AttackAction) Execute(g *Game) (cost uint, err error) {
 // handleEntityDeath handles an entity's death, either removing it completely
 // or turning it into a corpse (the preferred option)
 func (g *Game) handleEntityDeath(entityID ecs.EntityID, entityName string) {
-	g.Log.AddMessagef(ui.ColorDeath, "%s dies!", entityName)
+	g.log.AddMessagef(ui.ColorDeath, "%s dies!", entityName)
 	logrus.Infof("Entity %s (%d) has died.", entityName, entityID)
 
 	if entityID == g.PlayerID {
-		g.Log.AddMessagef(ui.ColorCritical, "You died! Game over!")
+		g.log.AddMessagef(ui.ColorCritical, "You died! Game over!")
 		logrus.Info("Player has died. Game over!")
 		// TODO: Implement game over state
 		return

@@ -14,7 +14,7 @@ const (
 	maxRooms           = 10
 	roomMinSize        = 6
 	roomMaxSize        = 10
-	maxMonstersPerRoom = 2  // Max monsters per room (excluding first)
+	maxMonstersPerRoom = 2 // Max monsters per room (excluding first)
 )
 
 // TileType represents the type of a map tile.

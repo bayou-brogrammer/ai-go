@@ -6,6 +6,28 @@ import (
 	"codeberg.org/anaseto/gruid"
 )
 
+type logStyle int
+
+const (
+	logNormal logStyle = iota
+	logCritic
+	logNotable
+	logDamage
+	logSpecial
+	logStatusEnd
+	logError
+	logConfirm
+)
+
+type logEntry struct {
+	Text  string
+	MText string
+	Index int
+	Tick  bool
+	Style logStyle
+	Dups  int
+}
+
 // Message represents a single message with associated color.
 type Message struct {
 	Text  string

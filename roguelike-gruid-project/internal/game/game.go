@@ -9,16 +9,17 @@ import (
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/log"
 	turn "github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/turn_queue"
 )
+
 // Game represents the main game state.
 type Game struct {
 	Depth           int
 	waitingForInput bool
 
-	Map       *Map
-	ecs       *ecs.ECS        // The Entity-Component-System manager
-	PlayerID  ecs.EntityID    // Store the player's entity ID
-	turnQueue *turn.TurnQueue // Event queue for game events
-	Log       *log.MessageLog // Add log field for game messages
+	dungeon   *Map
+	ecs       *ecs.ECS
+	PlayerID  ecs.EntityID
+	turnQueue *turn.TurnQueue
+	log       *log.MessageLog
 
 	rand *rand.Rand
 }
@@ -27,7 +28,7 @@ func NewGame() *Game {
 	return &Game{
 		ecs:       ecs.NewECS(),
 		turnQueue: turn.NewTurnQueue(),
-		Log:       log.NewMessageLog(), // Initialize message log
+		log:       log.NewMessageLog(),
 	}
 }
 
@@ -38,7 +39,7 @@ func (g *Game) InitLevel() {
 
 	g.Depth = 1
 
-	g.Map = NewMap(config.DungeonWidth, config.DungeonHeight)
-	playerStart := g.Map.generateMap(g, config.DungeonWidth, config.DungeonHeight) // Pass game struct
+	g.dungeon = NewMap(config.DungeonWidth, config.DungeonHeight)
+	playerStart := g.dungeon.generateMap(g, config.DungeonWidth, config.DungeonHeight)
 	g.SpawnPlayer(playerStart)
 }

@@ -16,36 +16,27 @@ import (
 )
 
 func main() {
-	// Initialize configuration and parse flags
 	config.Init()
 
-	// Setup logger format
 	logrus.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 		DisableColors: false,
 	})
 
-	// Display version information
 	logrus.Infof("Starting roguelike game - Debug mode: %v", config.Config.DebugLogging)
 
-	// Seed random number generator
 	seed := time.Now().UnixNano()
 	rand.New(rand.NewSource(seed))
 
-	// Create game grid
 	gd := gruid.NewGrid(config.DungeonWidth, config.DungeonHeight)
-
-	// Create game model
 	m := game.NewModel(gd)
 
-	// Get driver and initialize app
 	driver := ui.GetDriver()
 	app := gruid.NewApp(gruid.AppConfig{
 		Model:  m,
 		Driver: driver,
 	})
 
-	// Start application
 	logrus.Info("Starting game loop")
 	if err := app.Start(context.Background()); err != nil {
 		driver.Close()

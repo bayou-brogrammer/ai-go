@@ -131,7 +131,6 @@ func (md *Model) handleKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 	again, effect, err := md.normalModeKeyDown(msg.Key, msg.Mod&gruid.ModShift != 0)
 	if err != nil {
 		logrus.WithError(err).Debug("Error processing key down")
-		md.game.Print(err.Error())
 	}
 
 	if again {
