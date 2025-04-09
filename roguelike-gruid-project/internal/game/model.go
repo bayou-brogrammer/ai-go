@@ -6,6 +6,7 @@ package game
 
 import (
 	"runtime"
+	"time"
 
 	"codeberg.org/anaseto/gruid"
 	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/utils"
@@ -24,13 +25,20 @@ type Model struct {
 	grid gruid.Grid
 	game *Game
 	mode mode
+
+	// Debug information
+	lastUpdateTime time.Time
+	updateCount    uint64
+	lastEffect     gruid.Effect
 }
 
 // NewModel creates a new game model
 func NewModel(grid gruid.Grid) *Model {
 	return &Model{
-		grid: grid,
-		game: NewGame(),
+		grid:           grid,
+		game:           NewGame(),
+		mode:           modeNormal,
+		lastUpdateTime: time.Now(),
 	}
 }
 
@@ -66,6 +74,23 @@ func (md *Model) EndTurn() gruid.Effect {
 	md.processTurnQueue()
 	logrus.Debug("processTurnQueue completed")
 
+	// Track update metrics
+	md.updateCount++
+	md.lastUpdateTime = time.Now()
+
 	// Return nil to indicate the screen should be redrawn
 	return nil
+}
+
+// GetDebugInfo returns current debug information
+func (md *Model) GetDebugInfo() map[string]interface{} {
+	return map[string]interface{}{
+		"mode":            md.mode,
+		"updateCount":     md.updateCount,
+		"lastUpdateTime":  md.lastUpdateTime,
+		"lastEffect":      md.lastEffect,
+		"waitingForInput": md.game.waitingForInput,
+		"turnQueueSize":   md.game.turnQueue.Len(),
+		"currentTime":     md.game.turnQueue.CurrentTime,
+	}
 }
