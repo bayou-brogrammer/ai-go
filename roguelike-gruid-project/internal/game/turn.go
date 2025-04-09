@@ -1,125 +1,94 @@
 package game
 
 import (
-	"fmt"
-
-	"codeberg.org/anaseto/gruid"
-
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs"
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ecs/components"
-	"github.com/lecoqjacob/ai-go/roguelike-gruid-project/internal/ui"
 	"github.com/sirupsen/logrus"
 )
 
-// GameAction is an interface for actions that can be performed in the game.
-type GameAction interface {
-	Execute(g *Game) (cost uint, err error)
-}
+// processTurnQueue processes turns for actors until it's the player's turn
+// or the queue is exhausted for the current time step.
+func (md *Model) processTurnQueue() {
+	g := md.game
+	logrus.Debug("========= processTurnQueue started =========")
 
-type WaitAction struct {
-	EntityID ecs.EntityID
-}
-
-func (a WaitAction) Execute(g *Game) (cost uint, err error) {
-	return 100, nil // Standard wait cost
-}
-
-type MoveAction struct {
-	Direction gruid.Point
-	EntityID  ecs.EntityID
-}
-
-// Execute performs the move action, returning the time cost and any error.
-func (a MoveAction) Execute(g *Game) (cost uint, err error) {
-	again, err := g.EntityBump(a.EntityID, a.Direction)
-	if err != nil {
-		return 0, err // No cost if error occurred
+	// Periodically clean up the queue
+	metrics := g.turnQueue.CleanupDeadEntities(g.ecs)
+	if metrics.EntitiesRemoved > 10 {
+		logrus.Infof(
+			"Turn queue cleanup: removed %d entities in %v",
+			metrics.EntitiesRemoved,
+			metrics.ProcessingTime,
+		)
 	}
 
-	if !again {
-		// Bumped into something, action didn't fully succeed in moving
-		return 0, nil // No time cost for a bump
+	g.turnQueue.PrintQueue()
+
+	// Process turns until we need player input or run out of actors
+	for i := range 100 { // Limit iterations to prevent infinite loops
+		logrus.Debugf("Turn queue iteration %d", i)
+
+		if g.turnQueue.IsEmpty() {
+			logrus.Debug("Turn queue is empty.")
+			logrus.Debug("========= processTurnQueue ended (queue empty) =========")
+			return
+		}
+
+		turnEntry, ok := g.turnQueue.Next()
+		if !ok {
+			logrus.Debug("Error: Queue does not have any more actors.")
+			logrus.Debug("========= processTurnQueue ended (Next error) =========")
+			return
+		}
+
+		logrus.Debugf("Processing actor: EntityID=%d, Time=%d", turnEntry.EntityID, turnEntry.Time)
+		actor, ok := g.ecs.GetTurnActor(turnEntry.EntityID)
+		if !ok {
+			logrus.Debugf("Error: Entity %d is not a valid actor.", turnEntry.EntityID)
+			continue
+		}
+
+		if !actor.IsAlive() {
+			logrus.Debugf("Entity %d is not alive, skipping turn.", turnEntry.EntityID)
+			continue
+		}
+
+		isPlayer := turnEntry.EntityID == g.PlayerID
+		action := actor.NextAction()
+
+		if isPlayer && action == nil {
+			g.waitingForInput = true
+			logrus.Debug("It's the player's turn, waiting for input.")
+			g.turnQueue.Add(turnEntry.EntityID, turnEntry.Time)
+			logrus.Debug("========= processTurnQueue ended (player's turn) =========")
+			return
+		}
+
+		if action == nil {
+			logrus.Debugf("Entity %d has no actions, rescheduling turn at time %d", turnEntry.EntityID, turnEntry.Time)
+			g.turnQueue.Add(turnEntry.EntityID, turnEntry.Time)
+			continue
+		}
+
+		cost, err := action.(GameAction).Execute(g)
+		if err != nil {
+			logrus.Debugf("Failed to execute action for entity %d: %v", turnEntry.EntityID, err)
+
+			// On failure, reschedule with appropriate delay
+			if isPlayer {
+				g.turnQueue.Add(turnEntry.EntityID, turnEntry.Time)
+			} else {
+				g.turnQueue.Add(turnEntry.EntityID, turnEntry.Time+100)
+			}
+			continue
+		}
+
+		g.FOVSystem()
+
+		logrus.Debugf("Action executed for entity %d, cost: %d", turnEntry.EntityID, cost)
+
+		// Update the game time and schedule next turn
+		g.turnQueue.CurrentTime = turnEntry.Time + uint64(cost)
+		g.turnQueue.Add(turnEntry.EntityID, g.turnQueue.CurrentTime)
 	}
-	return 100, nil // Standard move cost
-}
 
-// AttackAction represents an entity attacking another entity.
-type AttackAction struct {
-	AttackerID ecs.EntityID
-	TargetID   ecs.EntityID
-}
-
-// Execute performs the attack action.
-func (a AttackAction) Execute(g *Game) (cost uint, err error) {
-	attackerName, _ := g.ecs.GetName(a.AttackerID)
-	targetName, _ := g.ecs.GetName(a.TargetID)
-	targetHealth, ok := g.ecs.GetHealth(a.TargetID)
-
-	if !ok {
-		// Target might have died between action queuing and execution
-		logrus.Debugf("%s (%d) tries to attack %s (%d), but target has no health component.", attackerName, a.AttackerID, targetName, a.TargetID)
-		return 0, fmt.Errorf("target %d has no health", a.TargetID)
-	}
-
-	// --- Basic Damage Calculation ---
-	damage := 1 // Simple fixed damage for now
-	targetHealth.CurrentHP -= damage
-
-	// Determine message color based on who is attacking
-	var msgColor gruid.Color
-	if a.AttackerID == g.PlayerID {
-		msgColor = ui.ColorPlayerAttack // Define in ui/color.go
-	} else if a.TargetID == g.PlayerID {
-		msgColor = ui.ColorEnemyAttack // Define in ui/color.go
-	} else {
-		msgColor = ui.ColorNeutralAttack // Define in ui/color.go
-	}
-	g.log.AddMessagef(msgColor, "%s attacks %s for %d damage.", attackerName, targetName, damage)
-
-	logrus.Infof("%s (%d) attacks %s (%d) for %d damage. %s HP: %d/%d",
-		attackerName, a.AttackerID,
-		targetName, a.TargetID,
-		damage,
-		targetName, targetHealth.CurrentHP, targetHealth.MaxHP)
-	g.ecs.AddComponent(a.TargetID, components.CHealth, targetHealth)
-
-	// Check for death (CurrentHP <= 0) and handle it
-	if targetHealth.IsDead() {
-		g.handleEntityDeath(a.TargetID, targetName)
-	}
-
-	return 100, nil // Standard attack cost
-}
-
-// handleEntityDeath handles an entity's death, either removing it completely
-// or turning it into a corpse (the preferred option)
-func (g *Game) handleEntityDeath(entityID ecs.EntityID, entityName string) {
-	g.log.AddMessagef(ui.ColorDeath, "%s dies!", entityName)
-	logrus.Infof("Entity %s (%d) has died.", entityName, entityID)
-
-	if entityID == g.PlayerID {
-		g.log.AddMessagef(ui.ColorCritical, "You died! Game over!")
-		logrus.Info("Player has died. Game over!")
-		// TODO: Implement game over state
-		return
-	}
-
-	// Turn entity into a corpse
-	g.ecs.RemoveComponents(entityID,
-		components.CTurnActor,
-		components.CAITag,
-		components.CBlocksMovement,
-		components.CHealth,
-	)
-
-	g.ecs.AddComponents(entityID,
-		components.Renderable{Glyph: '%', Color: ui.ColorCorpse},
-		components.CorpseTag{},
-	)
-
-	// Remove from turn queue
-	g.turnQueue.Remove(entityID)
-
-	// 4. Optional: add decomposition logic or timer for corpse cleanup
-	// TODO: Implement corpse decay system if desired
+	logrus.Debug("========= processTurnQueue ended (iteration limit reached) =========")
 }

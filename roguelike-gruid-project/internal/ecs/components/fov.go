@@ -78,3 +78,23 @@ func (f *FOV) SetVisible(p gruid.Point, mapWidth int) {
 		f.Visible[sliceIdx] |= (1 << bitIdx)
 	}
 }
+
+// GetVisiblePoints returns a slice of all points that are currently visible
+func (f *FOV) GetVisiblePoints(mapWidth int) []gruid.Point {
+	points := make([]gruid.Point, 0)
+
+	// Calculate map height based on visible slice size and width
+	mapHeight := (len(f.Visible) * 64) / mapWidth
+
+	// Iterate through all possible positions
+	for y := range mapHeight {
+		for x := range mapWidth {
+			p := gruid.Point{X: x, Y: y}
+			if f.IsVisible(p, mapWidth) {
+				points = append(points, p)
+			}
+		}
+	}
+
+	return points
+}

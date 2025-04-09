@@ -2,7 +2,7 @@ package game
 
 import "codeberg.org/anaseto/gruid"
 
-var KEYS_NORMAL = map[gruid.Key]action{
+var KEYS_NORMAL = map[gruid.Key]playerAction{
 	gruid.KeyArrowLeft:  ActionW,
 	gruid.KeyArrowDown:  ActionS,
 	gruid.KeyArrowUp:    ActionN,
@@ -22,7 +22,7 @@ var KEYS_NORMAL = map[gruid.Key]action{
 	"Q":                 ActionQuit,
 }
 
-func keyToDir(k action) (p gruid.Point) {
+func keyToDir(k playerAction) (p gruid.Point) {
 	switch k {
 	case ActionW:
 		p = gruid.Point{X: -1, Y: 0}

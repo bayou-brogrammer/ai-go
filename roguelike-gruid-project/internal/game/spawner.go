@@ -24,8 +24,11 @@ func (g *Game) SpawnPlayer(playerStart gruid.Point) {
 		components.NewTurnActor(100),
 		components.NewFOVComponent(4, g.dungeon.Width, g.dungeon.Height),
 	)
-	g.turnQueue.Add(playerID, g.turnQueue.CurrentTime)
 
+	// Add to turn queue
+	g.turnQueue.Add(playerID, g.turnQueue.CurrentTime)
+	// Add to spatial grid
+	g.spatialGrid.Add(playerID, playerStart)
 }
 
 func (g *Game) SpawnMonster(pos gruid.Point) {
@@ -72,6 +75,9 @@ func (g *Game) SpawnMonster(pos gruid.Point) {
 
 	logrus.Debugf("Created monster ID=%d at position %v, adding to turn queue at time %d",
 		monsterID, pos, g.turnQueue.CurrentTime+100)
-	g.turnQueue.Add(monsterID, g.turnQueue.CurrentTime+100)
 
+	// Add to turn queue
+	g.turnQueue.Add(monsterID, g.turnQueue.CurrentTime+100)
+	// Add to spatial grid
+	g.spatialGrid.Add(monsterID, pos)
 }

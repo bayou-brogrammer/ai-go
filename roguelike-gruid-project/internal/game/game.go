@@ -15,8 +15,10 @@ type Game struct {
 	Depth           int
 	waitingForInput bool
 
-	dungeon   *Map
-	ecs       *ecs.ECS
+	dungeon     *Map
+	ecs         *ecs.ECS
+	spatialGrid *SpatialGrid
+
 	PlayerID  ecs.EntityID
 	turnQueue *turn.TurnQueue
 	log       *log.MessageLog
@@ -26,18 +28,23 @@ type Game struct {
 
 func NewGame() *Game {
 	return &Game{
-		ecs:       ecs.NewECS(),
-		turnQueue: turn.NewTurnQueue(),
-		log:       log.NewMessageLog(),
+		ecs:         ecs.NewECS(),
+		turnQueue:   turn.NewTurnQueue(),
+		log:         log.NewMessageLog(),
+		spatialGrid: NewSpatialGrid(config.DungeonWidth, config.DungeonHeight),
 	}
 }
 
+// InitLevel initializes a new game level
 func (g *Game) InitLevel() {
 	if g.rand == nil {
 		g.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
 
 	g.Depth = 1
+
+	// Clear the spatial grid for the new level
+	g.spatialGrid.Clear()
 
 	g.dungeon = NewMap(config.DungeonWidth, config.DungeonHeight)
 	playerStart := g.dungeon.generateMap(g, config.DungeonWidth, config.DungeonHeight)

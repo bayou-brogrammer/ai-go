@@ -45,9 +45,11 @@ func NewModel(grid gruid.Grid) *Model {
 func (md *Model) init() gruid.Effect {
 	logrus.Debug("========= Game Initialization Started =========")
 	md.game.InitLevel()
+
 	logrus.Debug("Level initialized")
 	logrus.Debug("About to process turn queue for the first time")
 
+	md.game.FOVSystem()
 	md.processTurnQueue()
 	logrus.Debug("Initial turn queue processing completed")
 	logrus.Debug("========= Game Initialization Completed =========")
